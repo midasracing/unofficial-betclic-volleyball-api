@@ -1,0 +1,29 @@
+name: Verify Betclic streaming (single connection)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/probe_streaming.py'
+      - '.github/workflows/streaming-probe.yml'
+jobs:
+  streaming:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Run one-shot streaming test (maximum 1 listing + 1 stream)
+        run: python -m tools.probe_streaming
+      - name: Upload outcome report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: betclic-streaming-report
+          path: captures/streaming/
+          retention-days: 7
+          if-no-files-found: warn
