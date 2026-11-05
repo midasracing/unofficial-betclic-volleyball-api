@@ -11,6 +11,10 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
 from betclic_api import BetclicClient
+from betclic_api.proto import encode_field_varint, encode_field_string
+from betclic_api.parser import parse_match_detail_response
+
+from app.betclic_scores import decode_score_frames
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 
 from app.filters import category
@@ -22,7 +26,7 @@ PAGE_LIMIT = max(1, min(10, int(os.getenv("PAGE_LIMIT", "4"))))
 def timestamp():
     return datetime.now(timezone.utc).isoformat()
 
-def serialize(match):
+def serialize(match, decoded_score=None):
     return {
         "id": match.id,
         "sport": "volleyball",
@@ -36,12 +40,13 @@ def serialize(match):
         "is_live": match.is_live,
         "status": "live" if match.is_live else "scheduled_or_unknown",
         "teams": [{"name": t.name, "short": t.short} for t in match.teams],
-        "score": None,
-        "sets": None,
-        "current_set": None,
-        "current_points": None,
+        "score": decoded_score.get("sets_won_derived") if decoded_score else None,
+        "sets": decoded_score.get("completed_sets") if decoded_score else None,
+        "current_set": decoded_score.get("current_period") if decoded_score else None,
+        "current_points": decoded_score.get("current_points") if decoded_score else None,
         "serving_team": None,
-        "score_status": "not_available_in_upstream_client",
+        "score_status": "decoded_from_grpc_notification" if decoded_score else "not_observed",
+        "score_source": decoded_score.get("source") if decoded_score else None,
         "market_count": len(match.markets),
         "source_data": asdict(match),
         "markets": [
@@ -68,6 +73,7 @@ class Store:
     async def refresh(self):
         def retrieve():
             collected = {}
+            scores = {}
             discovered_competitions = {}
             upstream_total = None
             for page in range(PAGE_LIMIT):
@@ -92,7 +98,15 @@ class Store:
             for match_id, match in list(collected.items()):
                 if match.is_live:
                     try:
-                        detailed = self.client.get_match(match_id)
+                        payload = encode_field_varint(1, match_id)
+                        payload += encode_field_string(2, self.client.locale)
+                        frames = self.client._post(
+                            "offering.access.api.MatchService",
+                            "GetMatchWithNotification",
+                            payload,
+                        )
+                        detailed = parse_match_detail_response(frames)
+                        scores[match_id] = decode_score_frames(frames, expected_match_id=match_id)
                         if detailed.id == match_id:
                             detailed.name = detailed.name or match.name
                             detailed.competition = detailed.competition or match.competition
@@ -103,7 +117,7 @@ class Store:
                             collected[match_id] = detailed
                     except Exception as exc:
                         log.warning("Detail fetch failed for %s: %s", match_id, exc)
-            return ({key: serialize(m) for key, m in collected.items()}, discovered_competitions, upstream_total)
+            return ({key: serialize(m, scores.get(key)) for key, m in collected.items()}, discovered_competitions, upstream_total)
 
         new, catalog, total = await asyncio.to_thread(retrieve)
         previous = self.matches
@@ -162,7 +176,7 @@ def health():
             "matches_cached": len(store.matches),
             "source": "betclic-api", "update_mode": "polling",
             "poll_interval_seconds": POLL_SECONDS, "upstream_reported_total": store.upstream_total,
-            "score_source": "not_implemented"}
+            "score_source": "betclic_grpc_web_when_observed"}
 
 @app.get("/api/v1/matches")
 def matches(live: bool | None = None):
@@ -224,8 +238,8 @@ def schema():
         "available": ["id", "name", "date", "competition", "competition_id",
                       "is_live", "teams", "markets", "selections", "odds",
                       "market_suspended"],
-        "not_available": ["score", "sets", "current_set", "current_points",
-                          "serving_team"],
+        "conditionally_available": ["score", "sets", "current_set", "current_points"],
+        "not_available": ["serving_team"],
         "caution": "Original client does not decode score fields, and the "
                    "upstream method's default market bundle might be incomplete.",
     }
