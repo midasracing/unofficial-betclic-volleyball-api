@@ -27,10 +27,11 @@ Docs: http://127.0.0.1:8000/docs
 
 ## Important limitations
 
-- **Scores and set-by-set points are NOT available** from the existing
-  `TapsHTS/betclic-api` Match parser. The `score` field is explicitly null.
-  Integrate a separate licensed scores feed, or first verify the raw
-  gRPC-web payload contains score fields. Never infer score from betting odds.
+- **Volleyball score notifications ARE present in captured raw gRPC-web frames.**
+  `app/betclic_scores.py` now decodes a verified notification shape with
+  current points, completed sets and the current period. For events with no
+  decoded score notification these fields stay null. Serving team is still
+  unknown. This schema requires validation on additional men's matches. Never infer score from betting odds.
 - **Not upstream push streaming**: the MVP polls Betclic every 30 seconds by
   default (minimum 15 seconds); downstream WebSocket emits detected changes.
 - Betclic's original offering client uses the French regulatory zone. Its
@@ -49,6 +50,18 @@ max 10 pages of ~40 matches).
 
 ## Output conventions
 
-Each normalized match includes `sport`, `gender`, `provider`, `status`, `market_count`, and `source_data`. The latter preserves **every field already decoded by the upstream Python dataclass** and is not a dump of unknown raw protobuf tags. The normalized `score`, `sets`, `current_set`, `current_points`, and `serving_team` fields stay null until verified. The `status` value `scheduled_or_unknown` does **not** mean Betclic confirmed a match is scheduled rather than completed.
+Each normalized match includes `sport`, `gender`, `provider`, `status`, `market_count`, and `source_data`. The latter preserves **every field already decoded by the upstream Python dataclass** and is not a dump of unknown raw protobuf tags. The normalized `score`, `sets`, `current_set`, and `current_points` fields are populated when a verified score-notification frame is observed; otherwise null. `serving_team` remains null. The `status` value `scheduled_or_unknown` does **not** mean Betclic confirmed a match is scheduled rather than completed.
 
 `/api/v1/catalog` helps identify competition aliases and which were excluded by conservative filters. It shows names and counts, not excluded events. It is intended for diagnostics and may reveal women's competition names; the /matches endpoints still filter them. Periodic polling is not equivalent to Betclic source streaming.
+
+## Captured-score evidence (2026-11-05)
+
+The user-provided GitHub Actions protobuf artifact contained six data frames for
+Fenerbahce F. vs Afyon Bld F. The 120-byte fifth frame was a separate
+volleyball scoring notification with match ID 1271196261842944, current points
+15:10, first set 25:10, and current period `vlb_second_set`. It does **not**
+prove serving team or all game status codes. A test uses the exact captured
+120-byte notification. The upstream client still lacks score support.
+
+This example is women's volleyball and exists **only as a protocol regression
+fixture**. Event output remains limited to allowed men's competitions.
