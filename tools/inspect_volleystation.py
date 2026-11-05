@@ -17,12 +17,14 @@ from urllib.parse import urlparse
 
 from playwright.async_api import async_playwright
 
-MATCH_ID = "2543574"
+# II Liga fixture 2560209; III Liga regional phase 3964
+# Focus on the user's intended competitions: Polish men's II and III leagues.
+# III Liga is regional; Lubuskie is a concrete public example.
 TARGETS = [
-    "https://www.tauronliga.pl/games/action/show/id/1104835.html",
-    f"https://widgets.volleystation.com/play-by-play/{MATCH_ID}",
-    f"https://widgets.volleystation.com/team-stats/{MATCH_ID}",
+    "https://2ligamezczyzn.volleystation.com/pl/matches/2560209/",
+    "https://lubuskie.volleystation.com/pl/phase-3964-lubuska-iii-liga-mezczyzn/teams/2232985-ASORM/",
 ]
+
 OUTPUT = Path("captures/volleystation")
 ALLOWED_HOSTS = ("volleystation.com", "volleystation.pl", "tauronliga.pl")
 MAX_RESPONSE_SIZE = 12_000
@@ -88,7 +90,7 @@ async def inspect(page, url):
 async def main():
     OUTPUT.mkdir(parents=True, exist_ok=True)
     report = {"captured_at_utc": datetime.now(timezone.utc).isoformat(),
-              "match_id": MATCH_ID, "widgets": []}
+              "target": "Polish mens II Liga and III Liga (Lubuskie)", "widgets": []}
     async with async_playwright() as playwright:
         browser = await playwright.chromium.launch(headless=True)
         try:
