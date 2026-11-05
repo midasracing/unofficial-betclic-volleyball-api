@@ -19,6 +19,14 @@ jobs:
         run: python -m pip install -r requirements.txt
       - name: Run one-shot streaming test (maximum 1 listing + 1 stream)
         run: python -m tools.probe_streaming
+      - name: Summarize test outcome
+        if: always()
+        run: |
+          if [ -f captures/streaming/report.json ]; then
+            python -c 'import json; d=json.load(open("captures/streaming/report.json")); print("OUTCOME:", d.get("outcome"), "EVENT:", d.get("event"), "FRAMES:", d.get("frame_count"), "SPREAD_SECONDS:", d.get("frames_spread_seconds"))'
+            echo '### Betclic streaming probe' >> "$GITHUB_STEP_SUMMARY"
+            python -c 'import json,os; d=json.load(open("captures/streaming/report.json")); open(os.environ["GITHUB_STEP_SUMMARY"], "a").write("- Outcome: **%s**\\n- Frames: %s\\n- Spread (seconds): %s\\n- Event: %s\\n" % (d.get("outcome"),d.get("frame_count"),d.get("frames_spread_seconds"), d.get("event",{}).get("name","none")))'
+          fi
       - name: Upload outcome report
         if: always()
         uses: actions/upload-artifact@v4
