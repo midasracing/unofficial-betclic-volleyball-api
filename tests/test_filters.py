@@ -14,3 +14,7 @@ def test_women_and_unknown_excluded():
     assert category("PlusLiga Women") is None
     assert category("Serie A1") is None
     assert category("Unknown Cup") is None
+
+def test_french_gender_suffix():
+    assert category("Ligue des Champions F.") is None
+    assert category("Ligue des Champions H.") == "international:club"
