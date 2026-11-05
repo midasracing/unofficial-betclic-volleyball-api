@@ -21,6 +21,8 @@ Docs: http://127.0.0.1:8000/docs
 - `GET /api/v1/matches/{id}`
 - `GET /api/v1/matches/{id}/odds`
 - `GET /api/v1/competitions`
+- `GET /api/v1/catalog` — discovered competition names and inclusion status
+- `GET /api/v1/schema` — available fields and unsupported score fields
 - `WS /api/v1/live` (snapshot and changes)
 
 ## Important limitations
@@ -44,3 +46,9 @@ Docs: http://127.0.0.1:8000/docs
 
 `POLL_SECONDS` (default 30, minimum 15); `PAGE_LIMIT` (default 4,
 max 10 pages of ~40 matches).
+
+## Output conventions
+
+Each normalized match includes `sport`, `gender`, `provider`, `status`, `market_count`, and `source_data`. The latter preserves **every field already decoded by the upstream Python dataclass** and is not a dump of unknown raw protobuf tags. The normalized `score`, `sets`, `current_set`, `current_points`, and `serving_team` fields stay null until verified. The `status` value `scheduled_or_unknown` does **not** mean Betclic confirmed a match is scheduled rather than completed.
+
+`/api/v1/catalog` helps identify competition aliases and which were excluded by conservative filters. It shows names and counts, not excluded events. It is intended for diagnostics and may reveal women's competition names; the /matches endpoints still filter them. Periodic polling is not equivalent to Betclic source streaming.
