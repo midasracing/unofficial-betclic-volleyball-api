@@ -81,6 +81,11 @@ def stream_http(match_id, stop, on_frame, locale="fr"):
                     # Protobuf messages are stored unmodified.
                     on_frame(frame)
 
+def reconnect_delay(consecutive_failures, cooldown=90):
+    """Bounded exponential cooldown after a stream closes."""
+    return min(900, max(60, cooldown) * (2 ** min(4, max(0, consecutive_failures - 1))))
+
+
 class StreamWorker:
     """Manage one HTTP stream on a worker thread and reconnect conservatively."""
     def __init__(self, match_id, loop, callback, cooldown=90):
@@ -124,7 +129,7 @@ class StreamWorker:
                 break
             self.stats.state = "cooldown"
             # Avoid rapid retries; increase up to 15 minutes, no bypass logic.
-            delay = min(900, self.cooldown * (2 ** min(4, max(0, consecutive_failures - 1))))
+            delay = reconnect_delay(consecutive_failures, self.cooldown)
             self.stop.wait(delay)
         self.stats.state = "stopped"
 
