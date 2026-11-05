@@ -59,7 +59,7 @@ def serialize(match, decoded_score=None):
         "market_count": 1 if winner_market(match.markets) else 0,
         "winner_odds": winner_market(match.markets),
         "odds_observed_at": None,
-        "source_data": asdict(match),
+        "source_data": {key: value for key, value in asdict(match).items() if key != "markets"},
         "markets": [winner_market(match.markets)] if winner_market(match.markets) else [],
     }
 
