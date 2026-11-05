@@ -87,7 +87,7 @@ class Store:
     async def refresh(self):
         """Single centralized Betclic collector; REST/WS never call upstream."""
         now_mono = time.monotonic()
-        discovery_due = (not self.listed or now_mono - self.last_discovery >= DISCOVERY_SECONDS)
+        discovery_due = now_mono - self.last_discovery >= DISCOVERY_SECONDS
 
         def retrieve():
             listed = dict(self.listed)
