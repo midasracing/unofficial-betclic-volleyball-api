@@ -83,6 +83,7 @@ class Store:
         self.listeners = set()
         self.task = None
         self.streams = {}
+        self.retiring_streams = []
         self.last_stream_start = float('-inf')
 
     async def refresh(self):
@@ -224,7 +225,7 @@ class Store:
     def on_stream_frame(self, match_id, frame):
         """Decode pushed frames; called on event loop, NEVER sends HTTP requests."""
         event = self.listed.get(match_id)
-        if event is None:
+        if event is None or (STREAM_ENABLED and match_id not in self.streams):
             return
         existing = dict(self.matches.get(match_id) or serialize(event))
         updated = dict(existing)
@@ -268,7 +269,16 @@ class Store:
         for match_id, worker in list(self.streams.items()):
             if match_id not in desired:
                 worker.close()
+                self.retiring_streams.append(worker)
                 del self.streams[match_id]
+        # A thread can remain in an HTTP read for up to its read timeout.
+        # Never open replacement connections while any old stream is retiring.
+        self.retiring_streams = [
+            worker for worker in self.retiring_streams
+            if worker.thread and worker.thread.is_alive()
+        ]
+        if self.retiring_streams:
+            return
         # Stagger new upstream connections to avoid opening all of them at once.
         now = time.monotonic()
         if now - self.last_stream_start < STREAM_START_GAP_SECONDS:
@@ -300,9 +310,11 @@ async def lifespan(app: FastAPI):
     store.task = asyncio.create_task(store.loop())
     yield
     store.task.cancel()
-    for worker in store.streams.values():
+    for worker in list(store.streams.values()) + store.retiring_streams:
         worker.close()
-    await asyncio.gather(*(worker.shutdown() for worker in store.streams.values()))
+    await asyncio.gather(*(
+        worker.shutdown() for worker in list(store.streams.values()) + store.retiring_streams
+    ))
     try:
         await store.task
     except asyncio.CancelledError:
