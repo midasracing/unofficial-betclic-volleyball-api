@@ -33,8 +33,16 @@ Docs: http://127.0.0.1:8000/docs
   current points, completed sets and the current period. For events with no
   decoded score notification these fields stay null. Serving team is still
   unknown. This schema requires validation on additional men's matches. Never infer score from betting odds.
-- **Not upstream push streaming**: the MVP polls Betclic every 30 seconds by
-  default (minimum 15 seconds); downstream WebSocket emits detected changes.
+- **Experimental upstream push streaming is now implemented.** In streaming
+  mode (default), one persistent gRPC-web HTTP response is maintained for at
+  most one qualified match per process. Actual multi-update streaming and
+  latency have NOT yet been validated against a live match.
+- Match discovery is checked no more often than every 10 minutes by default;
+  REST/WebSocket clients never trigger Betclic requests. Do not run multiple
+  server workers/instances without external leader election.
+- After disconnect, reconnection waits at least 90 seconds and backs off to
+  15 minutes. This intentionally favors server friendliness over guaranteed
+  low latency. If streaming is not supported, the feed becomes stale.
 - Betclic's original offering client uses the French regulatory zone. Its
   listing may differ from the Polish site and some tournaments may be absent.
 - Competition names and gender filtering are **conservative heuristics**,
@@ -46,8 +54,14 @@ Docs: http://127.0.0.1:8000/docs
 
 ## Configuration
 
-`POLL_SECONDS` (default 30, minimum 15); `PAGE_LIMIT` (default 4,
-max 10 pages of ~40 matches).
+Streaming is enabled by default with `BETCLIC_STREAM=1`. Use
+`BETCLIC_STREAM=0` only for the bounded fallback polling mode.
+`DISCOVERY_SECONDS` defaults to 600 (minimum 600) for the match directory;
+`PAGE_LIMIT` defaults to 4. Streaming currently uses a hard cap of **one
+upstream match connection per process** while behavior is validated. The
+fallback mode uses `POLL_SECONDS` (default 30, minimum 15) and
+`MAX_DETAILS_PER_CYCLE` (default 3, max 5). Start uvicorn with exactly one
+worker and do not deploy several app instances yet.
 
 ## Output conventions
 
@@ -89,6 +103,30 @@ The production competition filter remains men's-only. `updated_at` is our
 refresh time, not a server-origin timestamp. When the source does not send a
 supported score notification, the score fields are **null**, not 0:0.
 The source of points is the same gRPC-web detail response as the betting markets.
-The source currently uses **polling** and has not been proven to have continuous
-low-latency push updates in production. Values should be treated as stale if
+The source now has an **experimental streaming collector**, but sustained
+low-latency push updates have not been verified in production. Values should be treated as stale if
 `/health` reports a refresh error.
+
+## End-to-end streaming data path
+
+```text
+Betclic gRPC-web MatchService stream (one HTTP POST held open)
+  -> app.streaming.StreamWorker (incremental gRPC-web frame reader)
+  -> app.betclic_scores (decode score notifications)
+  -> app.main.Store (in-memory latest state)
+  -> GET /api/v1/matches/{id}/score, /odds (cached; zero Betclic calls)
+  -> WS /api/v1/live (push from the cache to any connected web clients)
+```
+
+Frontend clients must only talk to this API. They should initialize from REST
+or the WebSocket `snapshot` event and subscribe to `match_updated` events.
+No browser traffic must be forwarded to Betclic. A WebSocket heartbeat is not
+proof of upstream activity: inspect `GET /health` for stream state and
+`last_frame_at`. When no fresh upstream frame has arrived, the frontend must
+not label old values as fresh.
+
+The score decoder is validated against a single captured notification. The
+price parser may require additional adaptation if Betclic sends incremental
+odds deltas instead of full detail snapshots. Unknown delta messages are not
+silently converted into odds updates. Do not increase upstream concurrency
+until the actual behavior has been inspected and authorized.
