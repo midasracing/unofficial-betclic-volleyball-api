@@ -21,6 +21,7 @@ Docs: http://127.0.0.1:8000/docs
 - `GET /api/v1/matches/{id}`
 - `GET /api/v1/matches/{id}/odds` — **only match winner** (two-way team victory odds), no exact-score or set-winner betting markets
 - `GET /api/v1/matches/{id}/score` — current set and points, completed sets, set wins
+- `GET /api/v1/leagues` — coverage and stream IDs for Poland, Italy, Japan
 - `GET /api/v1/competitions`
 - `GET /api/v1/catalog` — discovered competition names and inclusion status
 - `GET /api/v1/schema` — available fields and unsupported score fields
@@ -59,7 +60,7 @@ Docs: http://127.0.0.1:8000/docs
 Streaming is enabled by default with `BETCLIC_STREAM=1`. Use
 `BETCLIC_STREAM=0` only for the bounded fallback polling mode.
 `DISCOVERY_SECONDS` defaults to 600 (minimum 600) for the match directory;
-PAGE_LIMIT` defaults to 4. By default streaming selects up to **three
+`PAGE_LIMIT` defaults to 4. By default streaming selects up to **three
 concurrent matches**: one each from Poland's PlusLiga, Italy's men's SuperLega,
 and Japan's men's SV.League. A new connection starts no more often than every
 30 seconds, even if several live matches are discovered at once. Optional
@@ -153,7 +154,7 @@ international tournaments:
 Match discovery uses the upstream **French Betclic offering**. That catalog
 might omit some or all fixtures or use competition aliases not yet recognized.
 No stream is opened if a fixture is absent or its start/live flags do not pass
-the conservative eligibility check. The API cannot guarantee that all
+the conservative eligibility check (including a six-hour age limit on the start time). The API cannot guarantee that all
 simultaneous fixtures are streamed under the default safety limit.
 
 `GET /health` lists currently connected match IDs, last frame times and
