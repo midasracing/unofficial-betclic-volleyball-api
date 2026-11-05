@@ -61,3 +61,8 @@ def test_no_cross_league_or_women_streams():
         Fixture(2, "SuperLega Women", "C - D"),
         Fixture(3, "SV.League Women", "E - F"),
     ]) == []
+
+def test_old_flagged_live_match_is_not_reopened():
+    from app.scheduling import eligible_for_live_detail
+    old = (datetime.now(timezone.utc) - timedelta(hours=12)).isoformat()
+    assert not eligible_for_live_detail(Match(123, True, old))
