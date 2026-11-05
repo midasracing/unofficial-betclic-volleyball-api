@@ -19,7 +19,7 @@ Docs: http://127.0.0.1:8000/docs
 - `GET /api/v1/matches`
 - `GET /api/v1/matches/live`
 - `GET /api/v1/matches/{id}`
-- `GET /api/v1/matches/{id}/odds`
+- `GET /api/v1/matches/{id}/odds` — **only match winner** (two-way team victory odds), no exact-score or set-winner betting markets
 - `GET /api/v1/matches/{id}/score` — current set and points, completed sets, set wins
 - `GET /api/v1/competitions`
 - `GET /api/v1/catalog` — discovered competition names and inclusion status
@@ -130,3 +130,29 @@ price parser may require additional adaptation if Betclic sends incremental
 odds deltas instead of full detail snapshots. Unknown delta messages are not
 silently converted into odds updates. Do not increase upstream concurrency
 until the actual behavior has been inspected and authorized.
+
+### Winner-odds example
+
+`GET /api/v1/matches/{id}/odds`:
+
+```json
+{
+  "match_id": 123,
+  "updated_at": "2026-11-05T12:01:59+00:00",
+  "type": "match_winner_only",
+  "market": {
+    "name": "Vainqueur du match",
+    "suspended": false,
+    "selections": [
+      {"name": "Home team", "odds": 1.52},
+      {"name": "Away team", "odds": 2.48}
+    ]
+  },
+  "markets": []
+}
+```
+
+The numeric values above are illustrative, not live Betclic quotes.
+The `markets` compatibility array contains the same sole winner market
+when present (the example omits it for brevity). Match scores and points
+remain separately available at `/score`.
