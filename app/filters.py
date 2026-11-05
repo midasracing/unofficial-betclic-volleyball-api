@@ -16,7 +16,7 @@ NATIONAL = ("volleyball nations league", "nations league", "liga narodow", "worl
 
 def category(competition, match_name=None):
     competition_name = norm(competition)
-    if not competition_name or WOMEN.search(competition_name + " " + norm(match_name)):
+    if not competition_name or WOMEN.search(competition_name + " " + norm(match_name)) or re.search(r"(?:^|\\s)f\\.(?:\\s|$)", competition_name + " " + norm(match_name)):
         return None
     for country, names in LEAGUES.items():
         if any(alias in competition_name for alias in names):
