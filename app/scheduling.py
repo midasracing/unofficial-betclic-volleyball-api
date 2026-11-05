@@ -24,7 +24,9 @@ def eligible_for_live_detail(match, now=None):
             starts = starts.replace(tzinfo=timezone.utc)
     except (ValueError, TypeError, AttributeError):
         return True
-    return starts <= now.replace(microsecond=0) or (starts - now).total_seconds() <= 120
+    age = (now - starts).total_seconds()
+    # A stale upstream live flag must not leave an old match streaming forever.
+    return -120 <= age <= 6 * 3600
 
 
 def choose_due(matches, last_attempt, now_monotonic, interval, limit):
