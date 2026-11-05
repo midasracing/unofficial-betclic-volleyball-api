@@ -34,9 +34,11 @@ Docs: http://127.0.0.1:8000/docs
   decoded score notification these fields stay null. Serving team is still
   unknown. This schema requires validation on additional men's matches. Never infer score from betting odds.
 - **Experimental upstream push streaming is now implemented.** In streaming
-  mode (default), one persistent gRPC-web HTTP response is maintained for at
-  most one qualified match per process. Actual multi-update streaming and
-  latency have NOT yet been validated against a live match.
+  mode (default), one persistent gRPC-web HTTP connection per monitored
+  fixture is maintained (default: at most one fixture per target league,
+  three total). Sustained multi-frame score updates over one connection were
+  confirmed in a short probe on 2026-11-05, but full-day stability and live
+  price-change parsing still require verification.
 - Match discovery is checked no more often than every 10 minutes by default;
   REST/WebSocket clients never trigger Betclic requests. Do not run multiple
   server workers/instances without external leader election.
@@ -57,8 +59,13 @@ Docs: http://127.0.0.1:8000/docs
 Streaming is enabled by default with `BETCLIC_STREAM=1`. Use
 `BETCLIC_STREAM=0` only for the bounded fallback polling mode.
 `DISCOVERY_SECONDS` defaults to 600 (minimum 600) for the match directory;
-`PAGE_LIMIT` defaults to 4. Streaming currently uses a hard cap of **one
-upstream match connection per process** while behavior is validated. The
+PAGE_LIMIT` defaults to 4. By default streaming selects up to **three
+concurrent matches**: one each from Poland's PlusLiga, Italy's men's SuperLega,
+and Japan's men's SV.League. A new connection starts no more often than every
+30 seconds, even if several live matches are discovered at once. Optional
+`STREAMS_PER_LEAGUE=2` and `MAX_STREAMS=6` allow up to two per league
+and six overall; do not raise these until provider limits have been assessed.
+`STREAM_START_GAP_SECONDS` defaults to 30, minimum 20. The
 fallback mode uses `POLL_SECONDS` (default 30, minimum 15) and
 `MAX_DETAILS_PER_CYCLE` (default 3, max 5). Start uvicorn with exactly one
 worker and do not deploy several app instances yet.
@@ -130,6 +137,28 @@ price parser may require additional adaptation if Betclic sends incremental
 odds deltas instead of full detail snapshots. Unknown delta messages are not
 silently converted into odds updates. Do not increase upstream concurrency
 until the actual behavior has been inspected and authorized.
+
+## League-specific streaming coverage
+
+The live upstream streaming scheduler targets **only** the following men's
+national leagues, even though the REST match catalog may include eligible
+international tournaments:
+
+| League | Internal category | Stream cap by default |
+| --- | --- | --- |
+| Poland PlusLiga | `league:poland` | 1 |
+| Italy SuperLega | `league:italy` | 1 |
+| Japan SV.League Men | `league:japan` | 1 |
+
+Match discovery uses the upstream **French Betclic offering**. That catalog
+might omit some or all fixtures or use competition aliases not yet recognized.
+No stream is opened if a fixture is absent or its start/live flags do not pass
+the conservative eligibility check. The API cannot guarantee that all
+simultaneous fixtures are streamed under the default safety limit.
+
+`GET /health` lists currently connected match IDs, last frame times and
+stream counts. More matches can be enabled deliberately after the live
+catalog and provider load have been measured.
 
 ### Winner-odds example
 
