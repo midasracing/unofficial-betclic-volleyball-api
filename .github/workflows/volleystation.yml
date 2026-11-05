@@ -1,0 +1,32 @@
+name: Inspect VolleyStation public widget
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/inspect_volleystation.py'
+      - '.github/workflows/volleystation.yml'
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Playwright
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+      - name: Inspect public VolleyStation widget
+        run: python -m tools.inspect_volleystation
+      - name: Upload diagnostic report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: volleystation-widget-network
+          path: captures/volleystation/
+          retention-days: 3
+          if-no-files-found: warn
