@@ -160,6 +160,7 @@ class Store:
                     item = serialize(detailed, parsed.score)
                     item["status"] = "live_flag_unverified"
                     item["detail_observed_at"] = timestamp()
+                    item["odds_observed_at"] = item["detail_observed_at"] if item["winner_odds"] else None
                     item["score_observed_at"] = item["detail_observed_at"] if parsed.score else None
                     new[match_id] = item
                 except Exception as exc:
@@ -243,7 +244,7 @@ class Store:
         if detail is not None and detail.id == match_id:
             # Only publish match-winner market. Ignore all set/exact score odds.
             market = winner_market(detail.markets)
-            if market:
+            if market and market != existing.get("winner_odds"):
                 updated["markets"] = [market]
                 updated["winner_odds"] = market
                 updated["market_count"] = 1
