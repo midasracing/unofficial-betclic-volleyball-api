@@ -22,6 +22,26 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Inspect public VolleyStation widget
         run: python -m tools.inspect_volleystation
+      - name: Summarize detected API traffic
+        if: always()
+        run: |
+          if [ -f captures/volleystation/inspection.json ]; then
+            python - <<'PY'
+          import json, os
+          with open("captures/volleystation/inspection.json", encoding="utf-8") as f:
+              report = json.load(f)
+          lines = ["### VolleyStation diagnostics"]
+          for widget in report.get("widgets", []):
+              lines.append(f"- Page: {widget.get('page')} | HTTP: {widget.get('document_status')} | error: {widget.get('error')}")
+              lines.append(f"  - Embedded iframes: {widget.get('iframes', [])}")
+              interesting = [r for r in widget.get("requests", []) if r.get("type") in ("xhr", "fetch") or "websocket" in r]
+              for request in interesting[:15]:
+                  lines.append(f"  - {request.get('method', 'WS')} {request.get('status', '')} {request.get('url', request.get('websocket'))}")
+          print("\\n".join(lines))
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as f:
+              f.write("\\n".join(lines) + "\\n")
+          PY
+          fi
       - name: Upload diagnostic report
         if: always()
         uses: actions/upload-artifact@v4
