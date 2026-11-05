@@ -20,6 +20,7 @@ Docs: http://127.0.0.1:8000/docs
 - `GET /api/v1/matches/live`
 - `GET /api/v1/matches/{id}`
 - `GET /api/v1/matches/{id}/odds`
+- `GET /api/v1/matches/{id}/score` — current set and points, completed sets, set wins
 - `GET /api/v1/competitions`
 - `GET /api/v1/catalog` — discovered competition names and inclusion status
 - `GET /api/v1/schema` — available fields and unsupported score fields
@@ -65,3 +66,29 @@ prove serving team or all game status codes. A test uses the exact captured
 
 This example is women's volleyball and exists **only as a protocol regression
 fixture**. Event output remains limited to allowed men's competitions.
+
+## Score API
+
+`GET /api/v1/matches/{id}/score` exposes a single decoded score snapshot:
+
+```json
+{
+  "match_id": 1271196261842944,
+  "updated_at": "2026-11-05T11:33:00+00:00",
+  "status": "decoded_from_grpc_notification",
+  "sets_won": {"home": 1, "away": 0},
+  "completed_sets": [{"period": "vlb_first_set", "home": 25, "away": 10}],
+  "current_set": 2,
+  "current_points": {"home": 15, "away": 10},
+  "source": "betclic_grpc_web_score_notification"
+}
+```
+
+**Illustrative historical fixture** from a women's match, used only to validate the parser.
+The production competition filter remains men's-only. `updated_at` is our
+refresh time, not a server-origin timestamp. When the source does not send a
+supported score notification, the score fields are **null**, not 0:0.
+The source of points is the same gRPC-web detail response as the betting markets.
+The source currently uses **polling** and has not been proven to have continuous
+low-latency push updates in production. Values should be treated as stale if
+`/health` reports a refresh error.
