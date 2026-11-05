@@ -17,11 +17,16 @@ from app.parser import parse_match_frames
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 
 from app.filters import category
-from app.scheduling import choose_due
+from app.scheduling import choose_due, eligible_for_live_detail
+from app.streaming import StreamWorker
+from app.betclic_scores import decode_score_frames
+from betclic_api.parser import parse_match_detail_response
 
 log = logging.getLogger(__name__)
 POLL_SECONDS = max(15, int(os.getenv("POLL_SECONDS", "30")))
-DISCOVERY_SECONDS = max(120, int(os.getenv("DISCOVERY_SECONDS", "180")))
+DISCOVERY_SECONDS = max(600, int(os.getenv("DISCOVERY_SECONDS", "600")))
+STREAM_ENABLED = os.getenv("BETCLIC_STREAM", "1") == "1"
+MAX_STREAMS = 1  # deliberately conservative; increase only after provider validation
 MAX_DETAILS_PER_CYCLE = max(1, min(5, int(os.getenv("MAX_DETAILS_PER_CYCLE", "3"))))
 PAGE_LIMIT = max(1, min(10, int(os.getenv("PAGE_LIMIT", "4"))))
 
@@ -77,6 +82,7 @@ class Store:
         self.last_error = None
         self.listeners = set()
         self.task = None
+        self.streams = {}
 
     async def refresh(self):
         """Single centralized Betclic collector; REST/WS never call upstream."""
@@ -129,7 +135,7 @@ class Store:
                     new[match_id] = serialize(event)
 
             # One small, fair request budget, independent of connected WS clients.
-            due = choose_due(list(listed.values()), self.last_attempt, now_mono,
+            due = [] if STREAM_ENABLED else choose_due(list(listed.values()), self.last_attempt, now_mono,
                              POLL_SECONDS, MAX_DETAILS_PER_CYCLE)
             attempt_updates = {}
             detail_count = 0
@@ -178,6 +184,8 @@ class Store:
         self.detail_request_count += mc
         self.refreshed_at = timestamp()
         self.last_error = None
+        if STREAM_ENABLED:
+            self.reconcile_streams()
         for match_id in set(previous) | set(new):
             before, after = previous.get(match_id), new.get(match_id)
             if before == after:
@@ -195,6 +203,79 @@ class Store:
                     except asyncio.QueueEmpty:
                         pass
                 queue.put_nowait(event)
+
+    def publish(self, match_id, item):
+        previous = self.matches.get(match_id)
+        if previous == item:
+            return
+        self.matches[match_id] = item
+        event = {"type": "match_updated", "timestamp": timestamp(),
+                 "match_id": match_id, "match": item}
+        for queue in tuple(self.listeners):
+            if queue.full():
+                try:
+                    queue.get_nowait()
+                except asyncio.QueueEmpty:
+                    pass
+            queue.put_nowait(event)
+
+    def on_stream_frame(self, match_id, frame):
+        """Decode pushed frames; called on event loop, NEVER sends HTTP requests."""
+        event = self.listed.get(match_id)
+        if event is None:
+            return
+        existing = dict(self.matches.get(match_id) or serialize(event))
+        updated = dict(existing)
+        # Match/market snapshot and score notifications can be independent frames.
+        decoded = decode_score_frames([frame], expected_match_id=match_id)
+        if decoded:
+            updated.update({
+                "score": decoded.get("sets_won_derived"),
+                "sets": decoded.get("completed_sets"),
+                "current_set": decoded.get("current_set_number"),
+                "current_period": decoded.get("current_period"),
+                "current_points": decoded.get("current_points"),
+                "score_status": "decoded_from_grpc_notification",
+                "score_source": decoded.get("source"),
+                "score_observed_at": timestamp(),
+            })
+        try:
+            detail = parse_match_detail_response([frame])
+        except (ValueError, TypeError, IndexError) as exc:
+            log.debug("Unrecognized match frame: %s", exc)
+            detail = None
+        if detail is not None and detail.id == match_id:
+            # Only overwrite markets if a full nonempty market bundle was sent.
+            if detail.markets:
+                updated["markets"] = [
+                    {"name": m.name, "suspended": m.suspended,
+                     "selections": [{"name": s.name, "odds": s.odds} for s in m.selections]}
+                    for m in detail.markets
+                ]
+                updated["market_count"] = len(detail.markets)
+                updated["detail_observed_at"] = timestamp()
+        self.publish(match_id, updated)
+
+    def reconcile_streams(self):
+        if not STREAM_ENABLED:
+            return
+        # Open streams only for already-started eligible matches; one at a time.
+        eligible = sorted(
+            (m for m in self.listed.values()
+             if m.id is not None and eligible_for_live_detail(m)),
+            key=lambda m: m.id,
+        )
+        desired = {m.id for m in eligible[:MAX_STREAMS]}
+        for match_id, worker in list(self.streams.items()):
+            if match_id not in desired:
+                worker.close()
+                del self.streams[match_id]
+        loop = asyncio.get_running_loop()
+        for match_id in desired:
+            if match_id not in self.streams:
+                worker = StreamWorker(match_id, loop, self.on_stream_frame, cooldown=90)
+                self.streams[match_id] = worker
+                worker.start()
 
     async def loop(self):
         while True:
@@ -214,6 +295,9 @@ async def lifespan(app: FastAPI):
     store.task = asyncio.create_task(store.loop())
     yield
     store.task.cancel()
+    for worker in store.streams.values():
+        worker.close()
+    await asyncio.gather(*(worker.shutdown() for worker in store.streams.values()))
     try:
         await store.task
     except asyncio.CancelledError:
@@ -226,7 +310,8 @@ def health():
     return {"status": "ok" if store.refreshed_at and not store.last_error else "degraded",
             "refreshed_at": store.refreshed_at, "last_error": store.last_error,
             "matches_cached": len(store.matches),
-            "source": "betclic-api", "update_mode": "polling",
+            "source": "betclic-api", "update_mode": "streaming_experimental" if STREAM_ENABLED else "polling",
+            "streams": {str(i): vars(w.stats) for i, w in store.streams.items()},
             "poll_interval_seconds": POLL_SECONDS, "discovery_interval_seconds": DISCOVERY_SECONDS,
             "max_details_per_cycle": MAX_DETAILS_PER_CYCLE,
             "upstream_discovery_requests": store.discovery_request_count,
@@ -306,7 +391,7 @@ def schema():
         "sport": "volleyball",
         "gender": "men",
         "source": "betclic-api",
-        "update_mode": "polling",
+        "update_mode": "streaming_experimental" if STREAM_ENABLED else "polling",
         "available": ["id", "name", "date", "competition", "competition_id",
                       "is_live", "teams", "markets", "selections", "odds",
                       "market_suspended"],
