@@ -17,7 +17,7 @@ from app.parser import parse_match_frames
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 
 from app.filters import category
-from app.scheduling import choose_due, eligible_for_live_detail
+from app.scheduling import choose_due, select_league_streams, TARGET_LEAGUES
 from app.streaming import StreamWorker
 from app.winner_odds import winner_market
 from app.betclic_scores import decode_score_frames
@@ -27,7 +27,11 @@ log = logging.getLogger(__name__)
 POLL_SECONDS = max(15, int(os.getenv("POLL_SECONDS", "30")))
 DISCOVERY_SECONDS = max(600, int(os.getenv("DISCOVERY_SECONDS", "600")))
 STREAM_ENABLED = os.getenv("BETCLIC_STREAM", "1") == "1"
-MAX_STREAMS = 1  # deliberately conservative; increase only after provider validation
+# Default: one connection per league, at most three concurrent upstream streams.
+# Optional: two per league / six total after provider/usage validation.
+STREAMS_PER_LEAGUE = max(1, min(2, int(os.getenv("STREAMS_PER_LEAGUE", "1"))))
+MAX_STREAMS = max(1, min(6, int(os.getenv("MAX_STREAMS", "3"))))
+STREAM_START_GAP_SECONDS = max(20, int(os.getenv("STREAM_START_GAP_SECONDS", "30")))
 MAX_DETAILS_PER_CYCLE = max(1, min(5, int(os.getenv("MAX_DETAILS_PER_CYCLE", "3"))))
 PAGE_LIMIT = max(1, min(10, int(os.getenv("PAGE_LIMIT", "4"))))
 
@@ -79,6 +83,7 @@ class Store:
         self.listeners = set()
         self.task = None
         self.streams = {}
+        self.last_stream_start = float('-inf')
 
     async def refresh(self):
         """Single centralized Betclic collector; REST/WS never call upstream."""
@@ -255,23 +260,27 @@ class Store:
     def reconcile_streams(self):
         if not STREAM_ENABLED:
             return
-        # Open streams only for already-started eligible matches; one at a time.
-        eligible = sorted(
-            (m for m in self.listed.values()
-             if m.id is not None and eligible_for_live_detail(m)),
-            key=lambda m: m.id,
-        )
-        desired = {m.id for m in eligible[:MAX_STREAMS]}
+        # Round-robin across three men's leagues; preserve existing connections.
+        desired = set(select_league_streams(
+            self.listed.values(), current_ids=self.streams,
+            per_league=STREAMS_PER_LEAGUE, max_total=MAX_STREAMS,
+        ))
         for match_id, worker in list(self.streams.items()):
             if match_id not in desired:
                 worker.close()
                 del self.streams[match_id]
+        # Stagger new upstream connections to avoid opening all of them at once.
+        now = time.monotonic()
+        if now - self.last_stream_start < STREAM_START_GAP_SECONDS:
+            return
         loop = asyncio.get_running_loop()
-        for match_id in desired:
+        for match_id in sorted(desired):
             if match_id not in self.streams:
                 worker = StreamWorker(match_id, loop, self.on_stream_frame, cooldown=90)
                 self.streams[match_id] = worker
+                self.last_stream_start = now
                 worker.start()
+                break
 
     async def loop(self):
         while True:
@@ -308,6 +317,8 @@ def health():
             "matches_cached": len(store.matches),
             "source": "betclic-api", "update_mode": "streaming_experimental" if STREAM_ENABLED else "polling",
             "streams": {str(i): vars(w.stats) for i, w in store.streams.items()},
+            "target_leagues": list(TARGET_LEAGUES),
+            "max_streams": MAX_STREAMS, "streams_per_league": STREAMS_PER_LEAGUE,
             "poll_interval_seconds": POLL_SECONDS, "discovery_interval_seconds": DISCOVERY_SECONDS,
             "max_details_per_cycle": MAX_DETAILS_PER_CYCLE,
             "upstream_discovery_requests": store.discovery_request_count,
@@ -388,6 +399,7 @@ def schema():
     return {
         "sport": "volleyball",
         "gender": "men",
+        "streamed_leagues": list(TARGET_LEAGUES),
         "source": "betclic-api",
         "update_mode": "streaming_experimental" if STREAM_ENABLED else "polling",
         "available": ["id", "name", "date", "competition", "competition_id",
