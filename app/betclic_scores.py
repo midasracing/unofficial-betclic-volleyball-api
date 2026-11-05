@@ -74,7 +74,10 @@ def _score_notification(data):
             finished.append({"period": code, **result})
     current_info = _message(entry, 13)
     current_period = _utf8(_first(current_info, 3))
-    if current_period and not re.fullmatch(r"vlb_(?:first|second|third|fourth|fifth)_set", current_period):
+    set_indices = {"first": 1, "second": 2, "third": 3, "fourth": 4, "fifth": 5}
+    current_match = re.fullmatch(r"vlb_(first|second|third|fourth|fifth)_set", current_period or "")
+    current_set_number = set_indices[current_match.group(1)] if current_match else None
+    if not current_match:
         current_period = None
 
     if not points and not finished:
@@ -87,6 +90,7 @@ def _score_notification(data):
         "match_id": match_id,
         "sport": "volleyball",
         "current_period": current_period,
+        "current_set_number": current_set_number,
         "current_points": points,
         "completed_sets": finished,
         "sets_won_derived": sets_won,
