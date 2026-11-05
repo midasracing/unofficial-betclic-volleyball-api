@@ -377,6 +377,34 @@ def competitions():
     return {"competitions": list(unique.values())}
 
 
+@app.get("/api/v1/leagues")
+def leagues():
+    """Coverage from the last discovered catalog; no upstream request."""
+    result = []
+    for league, label in (
+        ("league:poland", "PlusLiga (Poland)"),
+        ("league:italy", "SuperLega (Italy)"),
+        ("league:japan", "SV.League Men (Japan)"),
+    ):
+        events = [
+            e for e in store.matches.values()
+            if e.get("category") == league
+        ]
+        active = [e for e in events if e["id"] in store.streams]
+        result.append({
+            "category": league, "name": label,
+            "discovered_matches": len(events),
+            "streamed_matches": len(active),
+            "streamed_match_ids": [e["id"] for e in active],
+            "matches_with_score": sum(bool(e.get("score_observed_at")) for e in events),
+            "matches_with_winner_odds": sum(bool(e.get("winner_odds")) for e in events),
+        })
+    return {"updated_at": store.refreshed_at,
+            "discovery_source": "Betclic FR offering",
+            "streams_per_league_limit": STREAMS_PER_LEAGUE,
+            "total_stream_limit": MAX_STREAMS,
+            "leagues": result}
+
 @app.get("/api/v1/catalog")
 def catalog():
     """Discovery catalog, including unmatched names, for tuning the allowlist.
