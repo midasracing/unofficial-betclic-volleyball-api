@@ -9,6 +9,7 @@ on:
       - 'tools/capture_raw_protobuf.py'
       - 'requirements.txt'
       - 'app/betclic_scores.py'
+      - 'app/parser.py'
       - 'app/main.py'
       - 'app/filters.py'
       - 'tests/test_scores.py'
