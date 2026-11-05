@@ -6,6 +6,7 @@ on:
     paths:
       - 'tools/probe_live_sports.py'
       - 'tools/probe_raw_live.py'
+      - 'tools/capture_raw_protobuf.py'
       - 'requirements.txt'
       - '.github/workflows/probe.yml'
 
@@ -26,3 +27,14 @@ jobs:
         run: python -m tools.probe_live_sports
       - name: Inspect raw event fields (volleyball and football)
         run: python -m tools.probe_raw_live
+      - name: Capture original protobuf message bytes
+        if: always()
+        run: python -m tools.capture_raw_protobuf
+      - name: Upload raw protobuf artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: betclic-raw-protobuf
+          path: captures/
+          retention-days: 7
+          if-no-files-found: warn
