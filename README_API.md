@@ -148,7 +148,16 @@ until the actual behavior has been inspected and authorized.
       {"name": "Away team", "odds": 2.48}
     ]
   },
-  "markets": []
+  "markets": [
+    {
+      "name": "Vainqueur du match",
+      "suspended": false,
+      "selections": [
+        {"name": "Home team", "odds": 1.52},
+        {"name": "Away team", "odds": 2.48}
+      ]
+    }
+  ]
 }
 ```
 
