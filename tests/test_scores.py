@@ -18,6 +18,7 @@ def test_live_score_frame():
         {"period": "vlb_first_set", "home": 25, "away": 10}
     ]
     assert actual["current_period"] == "vlb_second_set"
+    assert actual["current_set_number"] == 2
     assert actual["sets_won_derived"] == {"home": 1, "away": 0}
 
 def test_wrong_match_is_ignored():
@@ -26,3 +27,13 @@ def test_wrong_match_is_ignored():
 def test_non_score_frames_ignored():
     assert decode_score_frames([{"flags": 0x80, "data": SCORE_FRAME}]) is None
     assert decode_score_frames([{"flags": 0, "data": b"abc"}]) is None
+
+def test_unified_parser_reuses_frames(monkeypatch):
+    from app import parser
+    marker = object()
+    monkeypatch.setattr(parser, "parse_match_detail_response", lambda frames: marker)
+    frames = [{"flags": 0, "data": SCORE_FRAME}]
+    parsed = parser.parse_match_frames(frames, 1271196261842944)
+    assert parsed.match is marker
+    assert parsed.score["current_set_number"] == 2
+    assert parsed.score["current_points"] == {"home": 15, "away": 10}
