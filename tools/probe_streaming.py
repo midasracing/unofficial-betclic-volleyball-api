@@ -35,22 +35,26 @@ def main():
         "outcome": "not_started",
     }
     try:
-        # One listing request; do not probe historical women-only fixtures.
+        # Diagnostic only: any started volleyball match, irrespective of gender/league.
+        # Production API remains men-only.
         client = BetclicClient(timeout=(5, 12))
         listing = client.get_matches("volleyball")
         report["discovery_requests"] = 1
         events = [
             m for m in listing.get("matches", [])
             if m.id is not None
-            and category(m.competition, m.name) is not None
             and eligible_for_live_detail(m)
         ]
         report["eligible_events_count"] = len(events)
         if not events:
-            report["outcome"] = "no_eligible_mens_match"
+            report["outcome"] = "no_started_live_volleyball_match"
             return
+        # Prefer a target male competition if present, otherwise test any volleyball event.
+        events.sort(key=lambda m: category(m.competition, m.name) is None)
         match = events[0]
         report["event"] = {
+            "diagnostic_only": True,
+            "production_allowlisted": category(match.competition, match.name) is not None,
             "id": match.id,
             "name": match.name,
             "competition": match.competition,
