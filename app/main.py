@@ -1,7 +1,7 @@
 """REST + WebSocket API for the Betclic men's volleyball offering.
 
-Important: The upstream client does not expose match or set scores. score=null
-until a real, separately verified scores provider is integrated.
+The upstream client provides the match and odds; our parser additionally
+decodes point and set notifications from the same gRPC-web response.
 """
 import asyncio
 import logging
@@ -12,9 +12,7 @@ from datetime import datetime, timezone
 
 from betclic_api import BetclicClient
 from betclic_api.proto import encode_field_varint, encode_field_string
-from betclic_api.parser import parse_match_detail_response
-
-from app.betclic_scores import decode_score_frames
+from app.parser import parse_match_frames
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 
 from app.filters import category
@@ -42,7 +40,8 @@ def serialize(match, decoded_score=None):
         "teams": [{"name": t.name, "short": t.short} for t in match.teams],
         "score": decoded_score.get("sets_won_derived") if decoded_score else None,
         "sets": decoded_score.get("completed_sets") if decoded_score else None,
-        "current_set": decoded_score.get("current_period") if decoded_score else None,
+        "current_set": decoded_score.get("current_set_number") if decoded_score else None,
+        "current_period": decoded_score.get("current_period") if decoded_score else None,
         "current_points": decoded_score.get("current_points") if decoded_score else None,
         "serving_team": None,
         "score_status": "decoded_from_grpc_notification" if decoded_score else "not_observed",
@@ -105,8 +104,9 @@ class Store:
                             "GetMatchWithNotification",
                             payload,
                         )
-                        detailed = parse_match_detail_response(frames)
-                        scores[match_id] = decode_score_frames(frames, expected_match_id=match_id)
+                        parsed = parse_match_frames(frames, match_id)
+                        detailed = parsed.match
+                        scores[match_id] = parsed.score
                         if detailed.id == match_id:
                             detailed.name = detailed.name or match.name
                             detailed.competition = detailed.competition or match.competition
@@ -196,6 +196,20 @@ def match(match_id: int):
         raise HTTPException(status_code=404, detail="Match not found in monitored competitions")
     return item
 
+@app.get("/api/v1/matches/{match_id}/score")
+def match_score(match_id: int):
+    item = match(match_id)
+    return {
+        "match_id": match_id,
+        "updated_at": store.refreshed_at,
+        "status": item["score_status"],
+        "sets_won": item["score"],
+        "completed_sets": item["sets"],
+        "current_set": item["current_set"],
+        "current_points": item["current_points"],
+        "source": item["score_source"],
+    }
+
 @app.get("/api/v1/matches/{match_id}/odds")
 def odds(match_id: int):
     item = match(match_id)
@@ -238,10 +252,11 @@ def schema():
         "available": ["id", "name", "date", "competition", "competition_id",
                       "is_live", "teams", "markets", "selections", "odds",
                       "market_suspended"],
-        "conditionally_available": ["score", "sets", "current_set", "current_points"],
+        "conditionally_available": ["score", "sets", "current_set", "current_points", "current_period"],
         "not_available": ["serving_team"],
-        "caution": "Original client does not decode score fields, and the "
-                   "upstream method's default market bundle might be incomplete.",
+        "caution": "Scores decode from separately emitted gRPC-web notifications. "
+                   "Absent notifications mean null values, not 0:0. "
+                   "The upstream default market bundle might be incomplete.",
     }
 
 @app.websocket("/api/v1/live")
