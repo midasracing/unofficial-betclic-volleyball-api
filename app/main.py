@@ -6,6 +6,7 @@ until a real, separately verified scores provider is integrated.
 import asyncio
 import logging
 import os
+from dataclasses import asdict
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
@@ -24,15 +25,25 @@ def timestamp():
 def serialize(match):
     return {
         "id": match.id,
+        "sport": "volleyball",
+        "gender": "men",
+        "provider": "betclic",
         "name": match.name,
         "competition": match.competition,
         "competition_id": match.competition_id,
         "category": category(match.competition, match.name),
         "starts_at": match.date,
         "is_live": match.is_live,
+        "status": "live" if match.is_live else "scheduled_or_unknown",
         "teams": [{"name": t.name, "short": t.short} for t in match.teams],
         "score": None,
+        "sets": None,
+        "current_set": None,
+        "current_points": None,
+        "serving_team": None,
         "score_status": "not_available_in_upstream_client",
+        "market_count": len(match.markets),
+        "source_data": asdict(match),
         "markets": [
             {
                 "name": market.name,
@@ -47,6 +58,8 @@ class Store:
     def __init__(self, client=None):
         self.client = client or BetclicClient(timeout=(5, 8))
         self.matches = {}
+        self.discovered_competitions = {}
+        self.upstream_total = None
         self.refreshed_at = None
         self.last_error = None
         self.listeners = set()
@@ -55,10 +68,23 @@ class Store:
     async def refresh(self):
         def retrieve():
             collected = {}
+            discovered_competitions = {}
+            upstream_total = None
             for page in range(PAGE_LIMIT):
                 result = self.client.get_matches("volleyball", offset=page * 40)
+                upstream_total = result.get("total", upstream_total)
                 for match in result.get("matches", []):
-                    if match.id is not None and category(match.competition, match.name):
+                    classification = category(match.competition, match.name)
+                    key = str(match.competition_id or match.competition or "unknown")
+                    entry = discovered_competitions.setdefault(key, {
+                        "competition_id": match.competition_id,
+                        "name": match.competition,
+                        "category": classification,
+                        "events_count": 0,
+                        "included": bool(classification),
+                    })
+                    entry["events_count"] += 1
+                    if match.id is not None and classification:
                         collected[match.id] = match
                 if len(result.get("matches", [])) < 40:
                     break
@@ -77,11 +103,13 @@ class Store:
                             collected[match_id] = detailed
                     except Exception as exc:
                         log.warning("Detail fetch failed for %s: %s", match_id, exc)
-            return {key: serialize(m) for key, m in collected.items()}
+            return ({key: serialize(m) for key, m in collected.items()}, discovered_competitions, upstream_total)
 
-        new = await asyncio.to_thread(retrieve)
+        new, catalog, total = await asyncio.to_thread(retrieve)
         previous = self.matches
         self.matches = new
+        self.discovered_competitions = catalog
+        self.upstream_total = total
         self.refreshed_at = timestamp()
         self.last_error = None
         for match_id in set(previous) | set(new):
@@ -132,7 +160,9 @@ def health():
     return {"status": "ok" if store.refreshed_at and not store.last_error else "degraded",
             "refreshed_at": store.refreshed_at, "last_error": store.last_error,
             "matches_cached": len(store.matches),
-            "source": "betclic-api", "update_mode": "polling"}
+            "source": "betclic-api", "update_mode": "polling",
+            "poll_interval_seconds": POLL_SECONDS, "upstream_reported_total": store.upstream_total,
+            "score_source": "not_implemented"}
 
 @app.get("/api/v1/matches")
 def matches(live: bool | None = None):
@@ -165,6 +195,40 @@ def competitions():
         unique[str(key)] = {"id": item["competition_id"], "name": item["competition"],
                             "category": item["category"]}
     return {"competitions": list(unique.values())}
+
+
+@app.get("/api/v1/catalog")
+def catalog():
+    """Discovery catalog, including unmatched names, for tuning the allowlist.
+
+    Never returns events from excluded competitions.
+    """
+    return {
+        "updated_at": store.refreshed_at,
+        "source": "betclic",
+        "volleyball_events_reported": store.upstream_total,
+        "competitions": sorted(
+            store.discovered_competitions.values(),
+            key=lambda x: (not x["included"], str(x["name"])),
+        ),
+    }
+
+@app.get("/api/v1/schema")
+def schema():
+    """Explicitly distinguish available fields from unverified score data."""
+    return {
+        "sport": "volleyball",
+        "gender": "men",
+        "source": "betclic-api",
+        "update_mode": "polling",
+        "available": ["id", "name", "date", "competition", "competition_id",
+                      "is_live", "teams", "markets", "selections", "odds",
+                      "market_suspended"],
+        "not_available": ["score", "sets", "current_set", "current_points",
+                          "serving_team"],
+        "caution": "Original client does not decode score fields, and the "
+                   "upstream method's default market bundle might be incomplete.",
+    }
 
 @app.websocket("/api/v1/live")
 async def stream(socket: WebSocket):
