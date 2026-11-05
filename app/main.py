@@ -19,6 +19,7 @@ from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from app.filters import category
 from app.scheduling import choose_due, eligible_for_live_detail
 from app.streaming import StreamWorker
+from app.winner_odds import winner_market
 from app.betclic_scores import decode_score_frames
 from betclic_api.parser import parse_match_detail_response
 
@@ -55,16 +56,11 @@ def serialize(match, decoded_score=None):
         "serving_team": None,
         "score_status": "decoded_from_grpc_notification" if decoded_score else "not_observed",
         "score_source": decoded_score.get("source") if decoded_score else None,
-        "market_count": len(match.markets),
+        "market_count": 1 if winner_market(match.markets) else 0,
+        "winner_odds": winner_market(match.markets),
+        "odds_observed_at": None,
         "source_data": asdict(match),
-        "markets": [
-            {
-                "name": market.name,
-                "suspended": market.suspended,
-                "selections": [{"name": s.name, "odds": s.odds} for s in market.selections],
-            }
-            for market in match.markets
-        ],
+        "markets": [winner_market(match.markets)] if winner_market(match.markets) else [],
     }
 
 class Store:
@@ -245,15 +241,14 @@ class Store:
             log.debug("Unrecognized match frame: %s", exc)
             detail = None
         if detail is not None and detail.id == match_id:
-            # Only overwrite markets if a full nonempty market bundle was sent.
-            if detail.markets:
-                updated["markets"] = [
-                    {"name": m.name, "suspended": m.suspended,
-                     "selections": [{"name": s.name, "odds": s.odds} for s in m.selections]}
-                    for m in detail.markets
-                ]
-                updated["market_count"] = len(detail.markets)
+            # Only publish match-winner market. Ignore all set/exact score odds.
+            market = winner_market(detail.markets)
+            if market:
+                updated["markets"] = [market]
+                updated["winner_odds"] = market
+                updated["market_count"] = 1
                 updated["detail_observed_at"] = timestamp()
+                updated["odds_observed_at"] = updated["detail_observed_at"]
         self.publish(match_id, updated)
 
     def reconcile_streams(self):
@@ -356,7 +351,9 @@ def match_score(match_id: int):
 @app.get("/api/v1/matches/{match_id}/odds")
 def odds(match_id: int):
     item = match(match_id)
-    return {"match_id": match_id, "updated_at": store.refreshed_at, "markets": item["markets"]}
+    return {"match_id": match_id, "updated_at": item.get("odds_observed_at"),
+            "market": item.get("winner_odds"), "markets": item["markets"],
+            "type": "match_winner_only"}
 
 @app.get("/api/v1/competitions")
 def competitions():
@@ -394,7 +391,7 @@ def schema():
         "update_mode": "streaming_experimental" if STREAM_ENABLED else "polling",
         "available": ["id", "name", "date", "competition", "competition_id",
                       "is_live", "teams", "markets", "selections", "odds",
-                      "market_suspended"],
+                      "market_suspended", "winner_odds"],
         "conditionally_available": ["score", "sets", "current_set", "current_points", "current_period"],
         "not_available": ["serving_team"],
         "caution": "Scores decode from separately emitted gRPC-web notifications. "
