@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'tools/probe_live_sports.py'
+      - 'tools/probe_raw_live.py'
       - 'requirements.txt'
       - '.github/workflows/probe.yml'
 
@@ -23,3 +24,5 @@ jobs:
         run: python -m pip show betclic-api
       - name: Probe public Betclic events and odds
         run: python -m tools.probe_live_sports
+      - name: Inspect raw event fields (volleyball and football)
+        run: python -m tools.probe_raw_live
