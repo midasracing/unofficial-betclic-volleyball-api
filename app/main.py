@@ -18,7 +18,7 @@ from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 
 from app.filters import category
 from app.scheduling import choose_due, select_league_streams, TARGET_LEAGUES
-from app.streaming import StreamWorker
+from app.streaming import StreamWorker, STREAM_READ_TIMEOUT
 from app.winner_odds import winner_market
 from app.betclic_scores import decode_score_frames
 from betclic_api.parser import parse_match_detail_response
@@ -32,6 +32,7 @@ STREAM_ENABLED = os.getenv("BETCLIC_STREAM", "1") == "1"
 STREAMS_PER_LEAGUE = max(1, min(2, int(os.getenv("STREAMS_PER_LEAGUE", "1"))))
 MAX_STREAMS = max(1, min(6, int(os.getenv("MAX_STREAMS", "3"))))
 STREAM_START_GAP_SECONDS = max(20, int(os.getenv("STREAM_START_GAP_SECONDS", "30")))
+STREAM_RECOVERY_SECONDS = max(1, min(90, float(os.getenv("STREAM_RECOVERY_SECONDS", "1"))))
 MAX_DETAILS_PER_CYCLE = max(1, min(5, int(os.getenv("MAX_DETAILS_PER_CYCLE", "3"))))
 PAGE_LIMIT = max(1, min(10, int(os.getenv("PAGE_LIMIT", "4"))))
 
@@ -182,6 +183,16 @@ class Store:
             return new, listed, catalog, upstream_total, discovery_count, detail_count, attempt_updates
 
         new, listed, catalog, total, dc, mc, attempts = await asyncio.to_thread(retrieve)
+        if STREAM_ENABLED:
+            # A pushed frame can arrive while retrieve runs on its thread.
+            # Merge catalog metadata into the latest state on the event loop;
+            # never replace fresh points/odds with that thread's older copy.
+            for match_id, item in new.items():
+                latest = self.matches.get(match_id)
+                if latest is not None:
+                    metadata = {key: item[key] for key in (
+                        "name", "competition", "competition_id", "starts_at", "is_live", "status")}
+                    new[match_id] = {**latest, **metadata}
         previous = self.matches
         self.matches = new
         self.listed = listed
@@ -293,7 +304,8 @@ class Store:
         loop = asyncio.get_running_loop()
         for match_id in sorted(desired):
             if match_id not in self.streams:
-                worker = StreamWorker(match_id, loop, self.on_stream_frame, cooldown=90)
+                worker = StreamWorker(match_id, loop, self.on_stream_frame, cooldown=90,
+                                      recovery_seconds=STREAM_RECOVERY_SECONDS)
                 self.streams[match_id] = worker
                 self.last_stream_start = now
                 worker.start()
@@ -332,11 +344,28 @@ app = FastAPI(title="Unofficial Betclic Men's Volleyball API", version="0.1.0", 
 
 @app.get("/health")
 def health():
-    return {"status": "ok" if store.refreshed_at and not store.last_error else "degraded",
+    now = time.time()
+    streams = {}
+    active_workers = dict(store.streams)
+    for match_id, worker in active_workers.items():
+        item = dict(vars(worker.stats))
+        age = None if worker.stats.last_frame_at is None else max(0, now - worker.stats.last_frame_at)
+        item["last_frame_age_seconds"] = round(age, 3) if age is not None else None
+        item["receiving"] = worker.stats.state == "streaming" and age is not None and age <= STREAM_READ_TIMEOUT
+        streams[str(match_id)] = item
+    expected = set(select_league_streams(store.listed.values(), current_ids=active_workers,
+                                        per_league=STREAMS_PER_LEAGUE,
+                                        max_total=MAX_STREAMS)) if STREAM_ENABLED else set()
+    receiving = {int(match_id) for match_id, item in streams.items() if item["receiving"]}
+    feed_ok = expected <= receiving
+    return {"status": "ok" if store.refreshed_at and not store.last_error and feed_ok else "degraded",
             "refreshed_at": store.refreshed_at, "last_error": store.last_error,
             "matches_cached": len(store.matches),
             "source": "betclic-api", "update_mode": "streaming_experimental" if STREAM_ENABLED else "polling",
-            "streams": {str(i): vars(w.stats) for i, w in store.streams.items()},
+            "streams": streams,
+            "live_stream_status": "not_required" if not expected else "receiving" if feed_ok else "degraded",
+            "expected_live_streams": len(expected), "receiving_live_streams": len(expected & receiving),
+            "stream_recovery_seconds": STREAM_RECOVERY_SECONDS,
             "target_leagues": list(TARGET_LEAGUES),
             "max_streams": MAX_STREAMS, "streams_per_league": STREAMS_PER_LEAGUE,
             "poll_interval_seconds": POLL_SECONDS, "discovery_interval_seconds": DISCOVERY_SECONDS,

@@ -1,0 +1,320 @@
+{
+  "started_at": "2026-11-06T21:45:44.633785+00:00",
+  "finished_at": "2026-11-06T21:55:46.544095+00:00",
+  "seconds": 600,
+  "elapsed": 600.132,
+  "max_streams": 3,
+  "max_connections_per_event": 10,
+  "threads_stopped": true,
+  "measured_path": "One-second resubscription after productive delivery, with unmodified upstream failures",
+  "verification": {
+    "fast_recovery": "live",
+    "transient_backoff_cap_30_seconds": "offline regressions",
+    "catalog_merge_and_health": "offline regressions"
+  },
+  "completed_recoveries": 14,
+  "recovery_seconds": {
+    "min": 1.366,
+    "median": 1.4475,
+    "max": 1.752
+  },
+  "events": [
+    {
+      "sport": "tennis",
+      "id": 1272719886798848,
+      "name": "Taylor Fritz - Carlos Alcaraz",
+      "starts_at": "2026-11-06T19:00:00.0000000Z",
+      "competition": "Open de Paris",
+      "connections": [
+        {
+          "number": 1,
+          "opened": 0.0,
+          "end": "gRPC status 14: A task was canceled.",
+          "grpc_status": 14,
+          "closed": 8.357
+        },
+        {
+          "number": 2,
+          "opened": 9.454,
+          "end": "gRPC status 14: A task was canceled.",
+          "grpc_status": 14,
+          "closed": 56.792
+        },
+        {
+          "number": 3,
+          "opened": 57.834,
+          "end": "gRPC status 14: A task was canceled.",
+          "grpc_status": 14,
+          "closed": 143.146
+        },
+        {
+          "number": 4,
+          "opened": 144.219,
+          "end": "gRPC status 5: Match not found",
+          "grpc_status": 5,
+          "closed": 144.621
+        },
+        {
+          "number": 5,
+          "opened": 237.503,
+          "end": "gRPC status 5: Match not found",
+          "grpc_status": 5,
+          "closed": 237.854
+        },
+        {
+          "number": 6,
+          "opened": 419.735,
+          "end": "gRPC status 5: Match not found",
+          "grpc_status": 5,
+          "closed": 420.107
+        }
+      ],
+      "recoveries": [
+        {
+          "at": 9.771,
+          "connection": 2,
+          "seconds": 1.414,
+          "decoded_markets": 7,
+          "decoded_scores": 1
+        },
+        {
+          "at": 58.219,
+          "connection": 3,
+          "seconds": 1.427,
+          "decoded_markets": 7,
+          "decoded_scores": 1
+        }
+      ],
+      "market_changes": 12,
+      "score_changes": 7,
+      "frame_count": 36,
+      "decode_errors": 0
+    },
+    {
+      "sport": "basketball",
+      "id": 1271837715623936,
+      "name": "Palencia - Granada",
+      "starts_at": "2026-11-06T20:00:00.0000000Z",
+      "competition": "Espagne LEB",
+      "connections": [
+        {
+          "number": 1,
+          "opened": 0.001,
+          "end": "gRPC status 14: A task was canceled.",
+          "grpc_status": 14,
+          "closed": 29.656
+        },
+        {
+          "number": 2,
+          "opened": 30.721,
+          "end": "gRPC status 14: A task was canceled.",
+          "grpc_status": 14,
+          "closed": 101.563
+        },
+        {
+          "number": 3,
+          "opened": 102.628,
+          "end": "gRPC status 14: A task was canceled.",
+          "grpc_status": 14,
+          "closed": 224.551
+        },
+        {
+          "number": 4,
+          "opened": 225.595,
+          "end": "gRPC status 14: A task was canceled.",
+          "grpc_status": 14,
+          "closed": 314.583
+        },
+        {
+          "number": 5,
+          "opened": 315.683,
+          "end": "gRPC status 14: A task was canceled.",
+          "grpc_status": 14,
+          "closed": 358.664
+        },
+        {
+          "number": 6,
+          "opened": 359.722,
+          "end": "gRPC status 14: A task was canceled.",
+          "grpc_status": 14,
+          "closed": 447.586
+        },
+        {
+          "number": 7,
+          "opened": 448.629,
+          "end": "gRPC status 5: Match not found",
+          "grpc_status": 5,
+          "closed": 449.333
+        },
+        {
+          "number": 8,
+          "opened": 541.419,
+          "end": "gRPC status 5: Match not found",
+          "grpc_status": 5,
+          "closed": 541.779
+        }
+      ],
+      "recoveries": [
+        {
+          "at": 31.163,
+          "connection": 2,
+          "seconds": 1.507,
+          "decoded_markets": 6,
+          "decoded_scores": 0
+        },
+        {
+          "at": 103.001,
+          "connection": 3,
+          "seconds": 1.438,
+          "decoded_markets": 1,
+          "decoded_scores": 0
+        },
+        {
+          "at": 226.06,
+          "connection": 4,
+          "seconds": 1.509,
+          "decoded_markets": 1,
+          "decoded_scores": 0
+        },
+        {
+          "at": 316.334,
+          "connection": 5,
+          "seconds": 1.751,
+          "decoded_markets": 1,
+          "decoded_scores": 0
+        },
+        {
+          "at": 360.032,
+          "connection": 6,
+          "seconds": 1.368,
+          "decoded_markets": 1,
+          "decoded_scores": 0
+        }
+      ],
+      "market_changes": 15,
+      "score_changes": 0,
+      "frame_count": 126,
+      "decode_errors": 0
+    },
+    {
+      "sport": "football",
+      "id": 1267332870598656,
+      "name": "Famalicao - Arouca",
+      "starts_at": "2026-11-06T20:45:00.0000000Z",
+      "competition": "Liga Betclic",
+      "connections": [
+        {
+          "number": 1,
+          "opened": 0.002,
+          "end": "gRPC status 14: A task was canceled.",
+          "grpc_status": 14,
+          "closed": 78.734
+        },
+        {
+          "number": 2,
+          "opened": 79.832,
+          "end": "gRPC status 14: A task was canceled.",
+          "grpc_status": 14,
+          "closed": 139.735
+        },
+        {
+          "number": 3,
+          "opened": 140.803,
+          "end": "gRPC status 14: A task was canceled.",
+          "grpc_status": 14,
+          "closed": 258.941
+        },
+        {
+          "number": 4,
+          "opened": 259.987,
+          "end": "gRPC status 14: A task was canceled.",
+          "grpc_status": 14,
+          "closed": 342.521
+        },
+        {
+          "number": 5,
+          "opened": 343.573,
+          "end": "gRPC status 14: A task was canceled.",
+          "grpc_status": 14,
+          "closed": 384.258
+        },
+        {
+          "number": 6,
+          "opened": 385.335,
+          "end": "gRPC status 14: A task was canceled.",
+          "grpc_status": 14,
+          "closed": 505.364
+        },
+        {
+          "number": 7,
+          "opened": 506.434,
+          "end": "gRPC status 14: A task was canceled.",
+          "grpc_status": 14,
+          "closed": 535.501
+        },
+        {
+          "number": 8,
+          "opened": 536.6,
+          "end": "gRPC status 14: A task was canceled.",
+          "grpc_status": 14,
+          "closed": 599.843
+        }
+      ],
+      "recoveries": [
+        {
+          "at": 80.486,
+          "connection": 2,
+          "seconds": 1.752,
+          "decoded_markets": 13,
+          "decoded_scores": 0
+        },
+        {
+          "at": 141.215,
+          "connection": 3,
+          "seconds": 1.48,
+          "decoded_markets": 13,
+          "decoded_scores": 0
+        },
+        {
+          "at": 260.336,
+          "connection": 4,
+          "seconds": 1.395,
+          "decoded_markets": 10,
+          "decoded_scores": 0
+        },
+        {
+          "at": 344.193,
+          "connection": 5,
+          "seconds": 1.672,
+          "decoded_markets": 10,
+          "decoded_scores": 0
+        },
+        {
+          "at": 385.7,
+          "connection": 6,
+          "seconds": 1.442,
+          "decoded_markets": 12,
+          "decoded_scores": 0
+        },
+        {
+          "at": 506.817,
+          "connection": 7,
+          "seconds": 1.453,
+          "decoded_markets": 13,
+          "decoded_scores": 0
+        },
+        {
+          "at": 536.867,
+          "connection": 8,
+          "seconds": 1.366,
+          "decoded_markets": 12,
+          "decoded_scores": 0
+        }
+      ],
+      "market_changes": 82,
+      "score_changes": 0,
+      "frame_count": 249,
+      "decode_errors": 0
+    }
+  ]
+}

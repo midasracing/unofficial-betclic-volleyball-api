@@ -1,11 +1,15 @@
 """API contract checks using cached, synthetic fixtures and no upstream requests."""
 import asyncio
+from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
 from unittest.mock import Mock
 
+import pytest
 from betclic_api.models import Match, Market, Selection, Team
 from fastapi.testclient import TestClient
 
 from app import main
+from app.streaming import StreamStats
 
 
 def fixture(match_id=101, competition="Pologne Tauron Liga H.", teams=True, competition_id=None):
@@ -54,3 +58,67 @@ def test_rest_reads_cached_match_winner_odds_without_upstream_requests(monkeypat
     assert [selection["odds"] for selection in response.json()["market"]["selections"]] == [1.18, 4.0]
     upstream.get_matches.assert_not_called()
     upstream.get_match.assert_not_called()
+
+
+def test_catalog_refresh_preserves_a_newer_pushed_score_and_odds(monkeypatch):
+    monkeypatch.setattr(main, "STREAM_ENABLED", True)
+    cache = main.Store(Mock())
+    cache.listed = {101: fixture()}
+    cache.matches = {101: main.serialize(fixture())}
+    cache.matches[101]["current_points"] = {"home": 10, "away": 10}
+    cache.last_discovery = main.time.monotonic()
+    cache.reconcile_streams = Mock()
+
+    async def interleaved(function):
+        snapshot = function()
+        updated = dict(cache.matches[101])
+        updated["current_points"] = {"home": 11, "away": 10}
+        updated["winner_odds"] = {"name": "Match winner", "suspended": True, "selections": []}
+        cache.publish(101, updated)
+        return snapshot
+
+    monkeypatch.setattr(main.asyncio, "to_thread", interleaved)
+    asyncio.run(cache.refresh())
+    assert cache.matches[101]["current_points"] == {"home": 11, "away": 10}
+    assert cache.matches[101]["winner_odds"]["suspended"] is True
+    cache.client.get_matches.assert_not_called()
+
+
+def test_health_degrades_when_an_expected_live_match_has_no_worker(monkeypatch):
+    monkeypatch.setattr(main, "STREAM_ENABLED", True)
+    event = fixture()
+    event.is_live = True
+    event.date = (datetime.now(timezone.utc) - timedelta(minutes=5)).isoformat()
+    cache = main.Store(Mock())
+    cache.listed = {101: event}
+    cache.refreshed_at = main.timestamp()
+    monkeypatch.setattr(main, "store", cache)
+    result = main.health()
+    assert result["status"] == "degraded"
+    assert result["expected_live_streams"] == 1
+    assert result["receiving_live_streams"] == 0
+
+
+@pytest.mark.parametrize("state,age,status", [
+    ("opening", None, "degraded"), ("cooldown", 2, "degraded"),
+    ("blocked", 2, "degraded"), ("streaming", 20, "ok"),
+    ("streaming", 100, "degraded"),
+])
+def test_health_accounts_for_expected_live_streams(monkeypatch, state, age, status):
+    monkeypatch.setattr(main, "STREAM_ENABLED", True)
+    event = fixture()
+    event.is_live = True
+    event.date = (datetime.now(timezone.utc) - timedelta(minutes=5)).isoformat()
+    cache = main.Store(Mock())
+    cache.listed = {101: event}
+    cache.refreshed_at = main.timestamp()
+    cache.streams = {101: SimpleNamespace(stats=StreamStats(
+        state=state, last_frame_at=None if age is None else 1000-age))}
+    monkeypatch.setattr(main, "store", cache)
+    monkeypatch.setattr(main.time, "time", lambda: 1000)
+    result = main.health()
+    assert result["status"] == status
+    assert result["expected_live_streams"] == 1
+    assert result["receiving_live_streams"] == (1 if status == "ok" else 0)
+    assert result["streams"]["101"]["last_frame_age_seconds"] == age
+    cache.client.get_matches.assert_not_called()

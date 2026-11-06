@@ -43,15 +43,20 @@ Docs: http://127.0.0.1:8000/docs
 - Match discovery is checked no more often than every 10 minutes by default;
   REST/WebSocket clients never trigger Betclic requests. Do not run multiple
   server workers/instances without external leader election.
-- After a productive stream (at least two frames separated by two seconds),
-  a transient transport failure or gRPC status 14 uses a 15-second recovery
-  delay plus jitter. Openings for the same event remain at least 30 seconds
-  apart, and the old connection closes before the next opens. Empty/initial-only
-  failures still back off from 90 seconds to 15 minutes. HTTP `Retry-After`
-  on 429/503 takes precedence; HTTP 401/403 and gRPC 7/16 stop the worker.
-  A clean gRPC completion retains the normal 90-second minimum cooldown.
+- Startup and productive streams (two nonempty frames separated by two seconds)
+  receive a bounded recovery window: up to **three fast retries within 30 seconds**.
+  Transient failures, gRPC 4/14 and clean gRPC completion retry after **one
+  second plus jitter**. Openings for the same event remain at least five seconds
+  apart, with one connection per event. A single failed reconnect can use the
+  remaining fast attempts instead of immediately waiting 90 seconds. When the
+  window or retry budget expires, transient failures back off through 5, 10,
+  20 and at most 30 seconds, including jitter. HTTP 500/502/503/504 use this
+  policy too. Rate-limit/protocol failures retain conservative 90–900-second
+  backoff. HTTP `Retry-After` on 429/503 takes precedence over all local
+  limits; HTTP 401/403 and gRPC 7/16 stop the worker.
   Betclic can cancel streams: recovery reduces the interruption but cannot
-  guarantee an uninterrupted feed. See [the recovery test](docs/STREAM_RECOVERY_2026-11-06.md).
+  guarantee an uninterrupted feed. See [the original recovery test](docs/STREAM_RECOVERY_2026-11-06.md)
+  and [the continuity follow-up](docs/LIVE_CONTINUITY_2026-11-06.md).
 - Betclic's original offering client uses the French regulatory zone. Its
   listing may differ from the Polish site and some tournaments may be absent.
 - Competition-name filtering remains conservative. Betclic competition ID
@@ -69,11 +74,14 @@ Streaming is enabled by default with `BETCLIC_STREAM=1`. Use
 `DISCOVERY_SECONDS` defaults to 600 (minimum 600) for the match directory;
 `PAGE_LIMIT` defaults to 4. By default streaming selects up to **three
 concurrent matches**: one each from Poland's PlusLiga, Italy's men's SuperLega,
-and Japan's men's SV.League. A new connection starts no more often than every
-30 seconds, even if several live matches are discovered at once. Optional
+and Japan's men's SV.League. Newly selected matches start no more often than
+every 30 seconds, even if several are discovered at once. Reconnecting an
+existing match uses the separate recovery policy above. Optional
 `STREAMS_PER_LEAGUE=2` and `MAX_STREAMS=6` allow up to two per league
 and six overall; do not raise these until provider limits have been assessed.
 `STREAM_START_GAP_SECONDS` defaults to 30, minimum 20. The
+`STREAM_RECOVERY_SECONDS` setting defaults to 1 (range 1–90) before jitter and
+the minimum interval between openings of the same event. The
 fallback mode uses `POLL_SECONDS` (default 30, minimum 15) and
 `MAX_DETAILS_PER_CYCLE` (default 3, max 5). Start uvicorn with exactly one
 worker and do not deploy several app instances yet.
@@ -85,10 +93,23 @@ period. The recovery delay is separate from this idle-read timeout.
 
 Per-event `/health.streams` entries expose `state`, `last_frame_at`,
 `last_end_reason`, `last_grpc_status`, `consecutive_failures`,
-`last_retry_delay`, `next_retry_at` and `last_connection_seconds`.
-`next_retry_at` and `last_frame_at` are Unix timestamps. Inspect these entries
-even when the top-level health status is `ok`; that status tracks catalog
-refresh and does not guarantee an active stream for every fixture.
+`last_retry_delay`, `next_retry_at`, `last_connection_seconds`, `disconnects`,
+`last_open_at`, `last_disconnect_at`, `last_recovery_seconds`,
+`longest_recovery_seconds`, `recovery_attempts_left`, `last_frame_age_seconds`
+and `receiving`. The recovery metrics measure from disconnection to the first
+nonempty payload after reconnection, including intervening failed attempts.
+They measure client-observed recovery, not latency from the sporting event.
+The `*_at` values in stream stats are Unix timestamps.
+
+The top-level health status becomes `degraded` if an expected live stream is
+missing, opening, cooling down, blocked or has no frame within the read timeout,
+even if catalog refresh succeeded. `expected_live_streams`,
+`receiving_live_streams` and `live_stream_status` summarize this check for the
+configured stream limits. Receiving a transport frame does not by itself prove
+a fresh score or price; their observation timestamps remain separate.
+
+Catalog refresh merges metadata into the latest pushed state on the event loop,
+so it cannot replace a newer pushed score or odds with its older cached copy.
 
 ## Output conventions
 

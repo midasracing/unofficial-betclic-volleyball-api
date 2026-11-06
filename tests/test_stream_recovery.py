@@ -128,6 +128,8 @@ def worker(monkeypatch, stream, clock, attempts=1):
     streaming.GrpcStatusError(14, "A task was canceled."),
     requests.ConnectionError("Disconnected"),
     requests.exceptions.ChunkedEncodingError("Response ended prematurely"),
+    streaming.IncompleteFrameError("Truncated response"),
+    streaming.GrpcStatusError(4, "Deadline exceeded"),
     streaming.StreamResult("eof_without_trailers", frames=2),
 ])
 def test_productive_transport_failure_recovers_quickly_but_spaces_openings(monkeypatch, end):
@@ -137,14 +139,14 @@ def test_productive_transport_failure_recovers_quickly_but_spaces_openings(monke
         if isinstance(end, Exception):
             raise end
         return end
-    result = worker(monkeypatch, stream, [0, 0.1, 4, 5])
-    assert result.stop.delays == [25]  # Never open twice within 30 seconds.
+    result = worker(monkeypatch, stream, [0, 0.1, 2.5, 3])
+    assert result.stop.delays == [2]  # Never open twice within five seconds.
     assert result.stats.consecutive_failures == 0
     assert result.stats.updates == 2
     assert result.loop.call_soon_threadsafe.call_count == 2
     if isinstance(end, streaming.GrpcStatusError):
-        assert result.stats.last_grpc_status == 14
-        assert result.stats.last_end_reason == "grpc_status_14"
+        assert result.stats.last_grpc_status == end.code
+        assert result.stats.last_end_reason == f"grpc_status_{end.code}"
 
 
 def test_unproductive_failures_back_off_and_productive_stream_resets_streak(monkeypatch):
@@ -153,12 +155,13 @@ def test_unproductive_failures_back_off_and_productive_stream_resets_streak(monk
     def stream(match_id, stop, callback):
         nonlocal calls
         calls += 1
-        if calls == 3:
+        if calls == 6:
             callback({"data": b"initial", "flags": 0})
             callback({"data": b"update", "flags": 0})
         raise streaming.GrpcStatusError(14)
-    result = worker(monkeypatch, stream, [0, 1, 91, 92, 272, 273, 276, 312], attempts=3)
-    assert result.stop.delays == [90, 180, 15]
+    result = worker(monkeypatch, stream,
+                    [0, 1, 5, 6, 10, 11, 15, 16, 21, 22, 32, 32.1, 35, 36], attempts=6)
+    assert result.stop.delays == [4, 4, 4, 5, 10, 1]
     assert result.stats.consecutive_failures == 0
 
 
@@ -175,11 +178,82 @@ def test_rate_limit_respects_provider_retry_after(monkeypatch):
     assert result.stop.delays == [120]
 
 
-def test_clean_completion_does_not_use_fast_error_recovery(monkeypatch):
+def test_clean_completion_resubscribes_without_a_long_pause(monkeypatch):
     def stream(match_id, stop, callback):
         callback({"data": b"initial", "flags": 0})
         callback({"data": b"update", "flags": 0})
         return streaming.StreamResult("grpc_complete", 0, 2)
     result = worker(monkeypatch, stream, [0, 0.1, 4, 40])
-    assert result.stop.delays == [90]
+    assert result.stop.delays == [1]
     assert result.stats.last_grpc_status == 0
+
+
+@pytest.mark.parametrize("end", [
+    streaming.GrpcStatusError(14),
+    streaming.StreamResult("grpc_complete", 0),
+    streaming.StreamResult("eof_without_trailers"),
+])
+def test_empty_or_failed_connections_have_a_bounded_retry_burst(monkeypatch, end):
+    def stream(*args):
+        if isinstance(end, Exception):
+            raise end
+        return end
+    result = worker(monkeypatch, stream, [0, 1, 5, 6, 10, 11, 15, 16, 21, 22], attempts=5)
+    assert result.stop.delays == [4, 4, 4, 5, 10]
+    assert result.stats.recovery_attempts_left == 0
+
+
+def test_one_failed_reconnect_does_not_start_a_ninety_second_pause(monkeypatch):
+    calls = 0
+
+    def stream(match_id, stop, callback):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            callback({"data": b"initial", "flags": 0})
+            callback({"data": b"update", "flags": 0})
+        elif calls == 3:
+            callback({"data": b"recovered", "flags": 0})
+            stop.set()
+            return streaming.StreamResult("stopped", frames=1)
+        raise streaming.GrpcStatusError(14)
+    result = worker(monkeypatch, stream, [0, 0.1, 4, 40, 41, 42, 46, 46.2, 46.3], attempts=3)
+    assert result.stop.delays == [1, 4]
+    assert result.stats.last_recovery_seconds == 6.2
+    assert result.stats.longest_recovery_seconds == 6.2
+    assert result.stats.updates == 3
+
+
+def test_fast_recovery_window_expires_without_productive_data(monkeypatch):
+    result = worker(monkeypatch, Mock(side_effect=streaming.GrpcStatusError(14)), [0, 31])
+    assert result.stop.delays == [5]
+    assert result.stats.recovery_attempts_left == 0
+
+
+def test_empty_heartbeats_do_not_reset_the_recovery_budget(monkeypatch):
+    def stream(match_id, stop, callback):
+        callback({"data": b"", "flags": 0})
+        callback({"data": b"", "flags": 0})
+        raise streaming.GrpcStatusError(14)
+    result = worker(monkeypatch, stream, [0, 1, 3, 31])
+    assert result.stop.delays == [5]
+    assert result.stats.consecutive_failures == 1
+
+
+def test_stop_interrupts_the_reconnect_wait_without_opening_again(monkeypatch):
+    result = worker(monkeypatch, Mock(side_effect=requests.ConnectionError()), [0, 1])
+    assert result.stats.opens == 1
+    assert result.stats.state == "stopped"
+    assert result.stats.next_retry_at is None
+
+
+@pytest.mark.parametrize("error", [streaming.GrpcStatusError(14), http_error(503)])
+def test_transient_outage_never_enters_minutes_of_backoff(monkeypatch, error):
+    clock = [0, 1, 5, 6, 10, 11, 15, 16, 21, 22, 32, 33, 53, 54, 84, 85]
+    result = worker(monkeypatch, Mock(side_effect=error), clock, attempts=8)
+    assert result.stop.delays == [4, 4, 4, 5, 10, 20, 30, 30]
+
+
+def test_protocol_error_keeps_conservative_backoff(monkeypatch):
+    result = worker(monkeypatch, Mock(side_effect=streaming.FrameError('Unknown compression')), [0, 1])
+    assert result.stop.delays == [90]
