@@ -8,10 +8,10 @@ from fastapi.testclient import TestClient
 from app import main
 
 
-def fixture(match_id=101, competition="Pologne Tauron Liga H.", teams=True):
+def fixture(match_id=101, competition="Pologne Tauron Liga H.", teams=True, competition_id=None):
     return Match(
         id=match_id, name="Projekt Warszawa - Slepsk Suwalki",
-        competition=competition, date="2026-11-05T19:30:00Z",
+        competition=competition, competition_id=competition_id, date="2026-11-05T19:30:00Z",
         teams=[Team("Projekt Warszawa"), Team("Slepsk Suwalki")] if teams else [],
         markets=[Market("Vainqueur du match", selections=[
             Selection("Projekt Warszawa", 1.18), Selection("Slepsk Suwalki", 4.0),
@@ -24,14 +24,16 @@ def test_discovery_pages_by_received_count_and_excludes_women_and_season_markets
     client = Mock()
     client.get_matches.side_effect = [
         {"matches": [fixture(), fixture(102, "Pologne Tauron Liga F."),
-                     fixture(103, "Japon SV.League H.", teams=False)], "total": 0},
+                     fixture(103, "Japon SV.League H.", teams=False),
+                     fixture(104, "Japon SV Ligue", competition_id=36538)], "total": 0},
         {"matches": [], "total": 0},
     ]
     cache = main.Store(client)
     cache.reconcile_streams = Mock()
     asyncio.run(cache.refresh())
-    assert list(cache.matches) == [101]
-    assert [call.kwargs["offset"] for call in client.get_matches.call_args_list] == [0, 3]
+    assert list(cache.matches) == [101, 104]
+    assert cache.matches[104]["category"] == "league:japan"
+    assert [call.kwargs["offset"] for call in client.get_matches.call_args_list] == [0, 4]
     client.get_match.assert_not_called()
 
 

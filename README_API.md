@@ -48,10 +48,11 @@ Docs: http://127.0.0.1:8000/docs
   low latency. If streaming is not supported, the feed becomes stale.
 - Betclic's original offering client uses the French regulatory zone. Its
   listing may differ from the Polish site and some tournaments may be absent.
-- Competition names and gender filtering are **conservative heuristics**,
-  not verified Betclic IDs; review actual data before production. Women's
-  events with ambiguous names may require additional metadata and an ID
-  allowlist for certainty.
+- Competition-name filtering remains conservative. Betclic competition ID
+  **36538** is explicitly mapped to Japan's men's SV.League after observing
+  `Japon SV Ligue` with Voreas Hokkaido in the offering probe on 2026-11-06.
+  Explicit women's markers still take precedence over that ID. Other unknown
+  or ambiguous competition names remain excluded.
 - Results may be missing or stale during upstream failure; inspect /health.
 - Respect terms of service and data-provider restrictions. No automated betting.
 
@@ -195,3 +196,7 @@ The numeric values above are illustrative, not live Betclic quotes.
 The `markets` compatibility array contains the same sole winner market
 when present (the example omits it for brevity). Match scores and points
 remain separately available at `/score`.
+
+### Japanese league identifier evidence
+
+The [offering probe](https://github.com/midasracing/unofficial-betclic-volleyball-api/actions/runs/42206411474) returned competition ID `36538`, named `Japon SV Ligue`, with Voreas Hokkaido. The team appears in the [official SV.League men\'s team directory](https://www.svleague.jp/en/sv_men/team/detail/479). The production filter uses this verified ID rather than accepting all competitions with an ambiguous Japanese name.

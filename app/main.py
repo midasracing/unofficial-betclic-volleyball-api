@@ -47,7 +47,7 @@ def serialize(match, decoded_score=None):
         "name": match.name,
         "competition": match.competition,
         "competition_id": match.competition_id,
-        "category": category(match.competition, match.name),
+        "category": category(match.competition, match.name, match.competition_id),
         "starts_at": match.date,
         "is_live": match.is_live,
         "status": "live" if match.is_live else "scheduled_or_unknown",
@@ -113,7 +113,7 @@ class Store:
                         break
                     seen.update(event.id for event in fresh)
                     for event in fresh:
-                        classification = category(event.competition, event.name)
+                        classification = category(event.competition, event.name, event.competition_id)
                         key = str(event.competition_id or event.competition or "unknown")
                         entry = catalog.setdefault(key, {
                             "competition_id": event.competition_id,

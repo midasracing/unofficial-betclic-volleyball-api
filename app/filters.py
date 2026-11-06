@@ -19,10 +19,18 @@ FRENCH_LEAGUES = {
 CLUB = ("champions league", "liga mistrzow", "ligue des champions", "cev champions", "cev cup", "puchar cev", "challenge cup", "club world championship", "club world championships", "klubowe mistrzostwa swiata")
 NATIONAL = ("volleyball nations league", "nations league", "liga narodow", "world championship", "mistrzostwa swiata", "european championship", "mistrzostwa europy", "olympic", "olimpij", "world cup", "puchar swiata")
 
-def category(competition, match_name=None):
+VERIFIED_MENS_LEAGUE_IDS = {36538: "league:japan"}
+
+def category(competition, match_name=None, competition_id=None):
     competition_name = norm(competition)
     if not competition_name or WOMEN.search(competition_name + " " + norm(match_name)) or re.search(r"(?:^|\s)f\.(?:\s|$)", competition_name + " " + norm(match_name)):
         return None
+    try:
+        verified = VERIFIED_MENS_LEAGUE_IDS.get(int(competition_id))
+    except (TypeError, ValueError):
+        verified = None
+    if verified:
+        return verified
     for country, pattern in FRENCH_LEAGUES.items():
         if pattern.fullmatch(competition_name.strip()):
             return "league:" + country

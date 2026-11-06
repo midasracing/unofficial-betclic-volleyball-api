@@ -17,7 +17,7 @@ def main():
         seen.update(m.id for m in fresh)
         all_matches.extend(fresh)
         offset += len(batch)
-    valid = [m for m in all_matches if len(m.teams) == 2 and category(m.competition, m.name)]
+    valid = [m for m in all_matches if len(m.teams) == 2 and category(m.competition, m.name, m.competition_id)]
     live = [m for m in valid if m.is_live]
     print(json.dumps({
         "all_volleyball_count": len(all_matches),

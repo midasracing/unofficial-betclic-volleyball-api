@@ -28,3 +28,9 @@ def test_french_domestic_league_aliases():
     assert category("Italie Serie A1 F.") is None
     assert category("Japon SV.League F.") is None
     assert category("Pologne Tauron Liga H.", "Team A F. - Team B F.") is None
+
+
+def test_verified_mens_japan_competition_id():
+    assert category("Japon SV Ligue", "Voreas Hokkaido - Fragolad University", 36538) == "league:japan"
+    assert category("Japon SV Ligue", "Unknown A - Unknown B") is None
+    assert category("Japon SV Ligue F.", "Team A F. - Team B F.", 36538) is None

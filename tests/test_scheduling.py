@@ -66,3 +66,17 @@ def test_old_flagged_live_match_is_not_reopened():
     from app.scheduling import eligible_for_live_detail
     old = (datetime.now(timezone.utc) - timedelta(hours=12)).isoformat()
     assert not eligible_for_live_detail(Match(123, True, old))
+
+
+def test_verified_japan_id_is_selected_for_streaming():
+    from app.scheduling import select_league_streams
+    @dataclass
+    class Fixture:
+        id: int = 301
+        competition: str = "Japon SV Ligue"
+        competition_id: int = 36538
+        name: str = "Voreas Hokkaido - Fragolad University"
+        is_live: bool = True
+        date: str | None = None
+    assert select_league_streams([Fixture()]) == [301]
+    assert select_league_streams([Fixture(name="Team A F. - Team B F.")]) == []

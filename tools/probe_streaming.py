@@ -50,11 +50,11 @@ def main():
             report["outcome"] = "no_started_live_volleyball_match"
             return
         # Prefer a target male competition if present, otherwise test any volleyball event.
-        events.sort(key=lambda m: category(m.competition, m.name) is None)
+        events.sort(key=lambda m: category(m.competition, m.name, m.competition_id) is None)
         match = events[0]
         report["event"] = {
             "diagnostic_only": True,
-            "production_allowlisted": category(match.competition, match.name) is not None,
+            "production_allowlisted": category(match.competition, match.name, match.competition_id) is not None,
             "id": match.id,
             "name": match.name,
             "competition": match.competition,

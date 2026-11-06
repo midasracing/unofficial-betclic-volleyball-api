@@ -55,7 +55,7 @@ def select_league_streams(matches, current_ids=(), per_league=1, max_total=3, no
     for match in matches:
         if match.id is None or not eligible_for_live_detail(match, now=now):
             continue
-        league = category(match.competition, match.name)
+        league = category(match.competition, match.name, getattr(match, "competition_id", None))
         if league in groups:
             groups[league].append(match)
     for league in groups:
