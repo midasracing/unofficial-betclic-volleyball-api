@@ -200,3 +200,38 @@ remain separately available at `/score`.
 ### Japanese league identifier evidence
 
 The [offering probe](https://github.com/midasracing/unofficial-betclic-volleyball-api/actions/runs/42206411474) returned competition ID `36538`, named `Japon SV Ligue`, with Voreas Hokkaido. The team appears in the [official SV.League men\'s team directory](https://www.svleague.jp/en/sv_men/team/detail/479). The production filter uses this verified ID rather than accepting all competitions with an ambiguous Japanese name.
+
+## Active-sports streaming diagnostics
+
+The diagnostic probe can test currently started matches outside production
+volleyball coverage, including women's events. Production filters are unchanged.
+
+```bash
+python -m tools.probe_streaming --sports tennis,table_tennis,football --max-streams 3 --seconds 90
+```
+
+By default it discovers tennis, table tennis, football, basketball, hockey,
+handball and volleyball, with one listing per sport and at most three simultaneous
+streams. Each selected event must have a live flag, two sides and a known kickoff
+in the past six hours. The newest started event per sport is preferred. A live
+flag alone never admits a future event. This is a bounded diagnostic of the first
+listing page per sport, not a complete catalog scan.
+
+GitHub Actions **Probe Betclic active sports streaming** runs the probe automatically
+when its code changes and can also be started manually with sport/time inputs.
+Each selected match uses one connection with no automatic reconnect. The report
+and step summary are saved to `captures/streaming/report.json` and uploaded as an artifact.
+
+The report separates **evidence** from **transport_end**:
+- `initial_data_only`: no temporally separated delivery was demonstrated.
+- `repeated_payloads_only`: later deliveries contained identical bytes.
+- `different_payloads_observed`: bytes changed, without claiming decoded game/price changes.
+- `market_updates_observed`: a later decoded market snapshot changed.
+- `volleyball_score_updates_observed`: a later recognized volleyball score changed.
+
+A `read_timeout` after receiving frames does not erase that evidence or prove an
+unusable stream. No candidate is reported as `no_started_live_candidates`, rather
+than a connection failure. Other sports are never passed to the volleyball score
+decoder. Samples are bounded by time, frame count and bytes. A completed diagnostic
+workflow means the report was produced; inspect the evidence and connection-end
+columns for the actual result.

@@ -1,15 +1,39 @@
-name: Verify Betclic streaming (single connection)
+name: Probe Betclic active sports streaming
 on:
   workflow_dispatch:
+    inputs:
+      sports:
+        description: Comma-separated sport names (maximum 8)
+        required: true
+        default: tennis,table_tennis,football,basketball,hockey,handball,volleyball
+        type: string
+      max_streams:
+        description: Maximum simultaneous streams
+        type: choice
+        default: '3'
+        options: ['3', '2', '1']
+      seconds:
+        description: Observation time per connection (10-180 seconds)
+        type: number
+        default: 90
   push:
     branches: [main]
     paths:
       - 'tools/probe_streaming.py'
+      - 'tests/test_probe_streaming.py'
       - '.github/workflows/streaming-probe.yml'
+
+permissions:
+  contents: read
+
 jobs:
   streaming:
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 8
+    env:
+      PROBE_SPORTS: ${{ inputs.sports || 'tennis,table_tennis,football,basketball,hockey,handball,volleyball' }}
+      PROBE_MAX_STREAMS: ${{ inputs.max_streams || '3' }}
+      PROBE_SECONDS: ${{ inputs.seconds || 90 }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -17,21 +41,20 @@ jobs:
           python-version: '3.11'
       - name: Install dependencies
         run: python -m pip install -r requirements.txt
-      - name: Run one-shot streaming test (maximum 1 listing + 1 stream)
-        run: python -m tools.probe_streaming
-      - name: Summarize test outcome
-        if: always()
+      - name: Run offline probe regressions
+        run: python -m pytest -q tests/test_probe_streaming.py
+      - name: Discover active sports and observe one connection per event
         run: |
-          if [ -f captures/streaming/report.json ]; then
-            python -c 'import json; d=json.load(open("captures/streaming/report.json")); print("OUTCOME:", d.get("outcome"), "EVENT:", d.get("event"), "FRAMES:", d.get("frame_count"), "SPREAD_SECONDS:", d.get("frames_spread_seconds"))'
-            echo '### Betclic streaming probe' >> "$GITHUB_STEP_SUMMARY"
-            python -c 'import json,os; d=json.load(open("captures/streaming/report.json")); open(os.environ["GITHUB_STEP_SUMMARY"], "a").write("- Outcome: **%s**\\n- Frames: %s\\n- Spread (seconds): %s\\n- Event: %s\\n" % (d.get("outcome"),d.get("frame_count"),d.get("frames_spread_seconds"), d.get("event",{}).get("name","none")))'
-          fi
-      - name: Upload outcome report
+          python -m tools.probe_streaming \
+            --sports "$PROBE_SPORTS" \
+            --max-streams "$PROBE_MAX_STREAMS" \
+            --seconds "$PROBE_SECONDS" \
+            --summary "$GITHUB_STEP_SUMMARY"
+      - name: Upload detailed observations
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: betclic-streaming-report
+          name: betclic-active-sports-streaming-report
           path: captures/streaming/
           retention-days: 7
           if-no-files-found: warn
