@@ -235,3 +235,9 @@ than a connection failure. Other sports are never passed to the volleyball score
 decoder. Samples are bounded by time, frame count and bytes. A completed diagnostic
 workflow means the report was produced; inspect the evidence and connection-end
 columns for the actual result.
+
+## Longer score and odds capture
+
+Use `python -m tools.probe_long_streaming --seconds 600` for a bounded long capture (maximum 900 seconds, three events and four connections per event, with 90-second reconnection cooldown). It may finish early when every connection budget is exhausted. Each run uses a fresh capture directory. `tools.analyze_long_capture` inspects captured payloads offline, including initial score snapshots, score notifications and raw match-winner prices.
+
+See [the ten-minute test report from 2026-11-06](docs/LONG_STREAM_TEST_2026-11-06.md) for observed point and winner-price changes on the same connection. Diagnostic raw values, including 1.00 and uninterpreted source codes, do not establish that a selection is currently available to place.
