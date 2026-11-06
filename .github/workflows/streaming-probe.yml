@@ -29,7 +29,7 @@ permissions:
 jobs:
   streaming:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 10
     env:
       PROBE_SPORTS: ${{ inputs.sports || 'tennis,table_tennis,football,basketball,hockey,handball,volleyball' }}
       PROBE_MAX_STREAMS: ${{ inputs.max_streams || '3' }}

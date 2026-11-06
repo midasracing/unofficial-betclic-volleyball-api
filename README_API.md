@@ -43,9 +43,15 @@ Docs: http://127.0.0.1:8000/docs
 - Match discovery is checked no more often than every 10 minutes by default;
   REST/WebSocket clients never trigger Betclic requests. Do not run multiple
   server workers/instances without external leader election.
-- After disconnect, reconnection waits at least 90 seconds and backs off to
-  15 minutes. This intentionally favors server friendliness over guaranteed
-  low latency. If streaming is not supported, the feed becomes stale.
+- After a productive stream (at least two frames separated by two seconds),
+  a transient transport failure or gRPC status 14 uses a 15-second recovery
+  delay plus jitter. Openings for the same event remain at least 30 seconds
+  apart, and the old connection closes before the next opens. Empty/initial-only
+  failures still back off from 90 seconds to 15 minutes. HTTP `Retry-After`
+  on 429/503 takes precedence; HTTP 401/403 and gRPC 7/16 stop the worker.
+  A clean gRPC completion retains the normal 90-second minimum cooldown.
+  Betclic can cancel streams: recovery reduces the interruption but cannot
+  guarantee an uninterrupted feed. See [the recovery test](docs/STREAM_RECOVERY_2026-11-06.md).
 - Betclic's original offering client uses the French regulatory zone. Its
   listing may differ from the Polish site and some tournaments may be absent.
 - Competition-name filtering remains conservative. Betclic competition ID
@@ -71,6 +77,18 @@ and six overall; do not raise these until provider limits have been assessed.
 fallback mode uses `POLL_SECONDS` (default 30, minimum 15) and
 `MAX_DETAILS_PER_CYCLE` (default 3, max 5). Start uvicorn with exactly one
 worker and do not deploy several app instances yet.
+
+Streaming reads allow **90 seconds of upstream silence** (previously 35);
+this does not delay frames that arrive earlier. A connection still blocked in
+a read may take up to 90 seconds to stop; shutdown allows a 95-second grace
+period. The recovery delay is separate from this idle-read timeout.
+
+Per-event `/health.streams` entries expose `state`, `last_frame_at`,
+`last_end_reason`, `last_grpc_status`, `consecutive_failures`,
+`last_retry_delay`, `next_retry_at` and `last_connection_seconds`.
+`next_retry_at` and `last_frame_at` are Unix timestamps. Inspect these entries
+even when the top-level health status is `ok`; that status tracks catalog
+refresh and does not guarantee an active stream for every fixture.
 
 ## Output conventions
 

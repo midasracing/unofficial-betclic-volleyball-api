@@ -10,7 +10,7 @@ import time
 from betclic_api.client import SPORTS
 
 from app.client import BetclicSnapshotClient
-from app.streaming import stream_http
+from app.streaming import stream_http, GrpcStatusError, STREAM_SHUTDOWN_GRACE
 from tools.probe_streaming import DEFAULT_SPORTS, select_live_candidate, started_at
 
 
@@ -77,12 +77,15 @@ def capture_events(events, directory, seconds=600, max_connections=4, streamer=s
                 save(item)
             try:
                 emit({'open': match.name, 'session': number})
-                streamer(match.id, stop, received)
-                session['end'] = 'stopped' if stop.is_set() else 'closed'
+                result = streamer(match.id, stop, received)
+                session['end'] = 'stopped' if stop.is_set() else getattr(result, 'end_reason', 'closed')
+                session['grpc_status'] = getattr(result, 'grpc_status', None)
             except Exception as error:
                 session['end'] = f'{type(error).__name__}: {error}'
                 response = getattr(error, 'response', None)
                 if response is not None and response.status_code in (401, 403, 429):
+                    session['stop_after_refusal'] = True
+                if isinstance(error, GrpcStatusError) and error.code in (7, 8, 16):
                     session['stop_after_refusal'] = True
             session['closed_at_seconds'] = round(time.monotonic()-began, 3)
             save(item)
@@ -97,7 +100,7 @@ def capture_events(events, directory, seconds=600, max_connections=4, streamer=s
     for thread in threads:
         thread.join(max(0, deadline-time.monotonic()))
     stop.set()
-    shutdown_deadline = time.monotonic() + 40
+    shutdown_deadline = time.monotonic() + STREAM_SHUTDOWN_GRACE
     for thread in threads:
         thread.join(max(0, shutdown_deadline-time.monotonic()))
     report['finished_at'] = datetime.now(timezone.utc).isoformat()

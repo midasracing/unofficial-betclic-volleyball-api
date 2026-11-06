@@ -113,6 +113,7 @@ def test_other_sports_never_use_the_volleyball_score_decoder(monkeypatch, no_mar
 
 
 @pytest.mark.parametrize("error, expected", [
+    (probe.GrpcStatusError(14, "A task was canceled."), "grpc_status_14"),
     (requests.ReadTimeout("idle"), "read_timeout"),
     (requests.ConnectionError("Read timed out."), "read_timeout"),
     (requests.ConnectTimeout("connect"), "connect_timeout"),

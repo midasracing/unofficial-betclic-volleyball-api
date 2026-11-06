@@ -19,7 +19,7 @@ from betclic_api.parser import parse_match_detail_response
 from app.betclic_scores import decode_score_frames
 from app.client import BetclicSnapshotClient
 from app.filters import category
-from app.streaming import stream_http
+from app.streaming import stream_http, GrpcStatusError, STREAM_SHUTDOWN_GRACE
 
 DEFAULT_SPORTS = ("tennis", "table_tennis", "football", "basketball",
                   "hockey", "handball", "volleyball")
@@ -51,6 +51,8 @@ def select_live_candidate(matches, now):
 
 
 def transport_error(error):
+    if isinstance(error, GrpcStatusError):
+        return f"grpc_status_{error.code}"
     if isinstance(error, requests.exceptions.ConnectTimeout):
         return "connect_timeout"
     if isinstance(error, requests.exceptions.ReadTimeout) or (
@@ -206,8 +208,8 @@ def run_probe(sports=DEFAULT_SPORTS, max_streams=3, seconds=90, client=None, str
         sample.started = time.monotonic()
         sample.end = "connected_or_connecting"
         try:
-            streamer(sample.match.id, sample.stop, sample.record)
-            sample.end = "sample_limit" if sample.limit_reached else "time_limit" if sample.stop.is_set() else "closed"
+            result = streamer(sample.match.id, sample.stop, sample.record)
+            sample.end = "sample_limit" if sample.limit_reached else "time_limit" if sample.stop.is_set() else getattr(result, "end_reason", "closed")
         except Exception as error:
             sample.end = transport_error(error)
             sample.error = f"{type(error).__name__}: {error}"
@@ -222,8 +224,8 @@ def run_probe(sports=DEFAULT_SPORTS, max_streams=3, seconds=90, client=None, str
         thread.join(max(0, deadline - time.monotonic()))
     for sample in observations:
         sample.stop.set()
-    # The shared transport has a 35-second read timeout. One global grace period.
-    shutdown_deadline = time.monotonic() + 40
+    # One global grace period, aligned with the transport's idle-read timeout.
+    shutdown_deadline = time.monotonic() + STREAM_SHUTDOWN_GRACE
     for thread in threads:
         thread.join(max(0, shutdown_deadline - time.monotonic()))
     for sample, thread in zip(observations, threads):
