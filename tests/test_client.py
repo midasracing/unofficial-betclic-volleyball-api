@@ -77,7 +77,7 @@ class TransportTests(unittest.TestCase):
         http = response([body])
         with patch.object(self.client._session, "post", return_value=http):
             detail = self.client.get_match(101)
-        self.assertEqual(winner_market(detail)["selections"],
+        self.assertEqual(winner_market(detail.markets)["selections"],
                          [{"name": "A", "odds": 1.5}, {"name": "B", "odds": 2.5}])
         http.close.assert_called_once()
 
