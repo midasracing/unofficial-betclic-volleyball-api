@@ -8,7 +8,7 @@ import json
 import sys
 from datetime import datetime, timezone
 
-from betclic_api import BetclicClient
+from app.client import BetclicSnapshotClient as BetclicClient
 
 SPORTS = ("volleyball", "tennis", "football")
 

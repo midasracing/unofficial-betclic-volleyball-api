@@ -7,7 +7,7 @@ This makes ONE detail request. It does not infer or label unknown fields as
 scores. Inspect output against the Betclic live scoreboard before mapping.
 """
 import argparse
-from betclic_api import BetclicClient
+from app.client import BetclicSnapshotClient as BetclicClient
 from betclic_api.proto import encode_field_varint, encode_field_string, decode_protobuf, try_decode_string
 
 def walk(payload, path="root", depth=0, max_depth=5, budget=None):

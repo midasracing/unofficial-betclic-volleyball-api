@@ -1,7 +1,7 @@
 fastapi>=0.115,<1
 uvicorn[standard]>=0.30,<1
 # This client is maintained in a GitHub repository; install from source.
-# Pin to a known commit after the first successful compatibility test.
-betclic-api @ git+https://github.com/TapsHTS/betclic-api.git@main
+# Source and parser contract verified by snapshot and streaming regression tests.
+betclic-api @ git+https://github.com/TapsHTS/betclic-api.git@5989c0936e17c98fff392dc20f5d2e8e4048c04e
 pytest>=8,<10
 httpx>=0.27,<1

@@ -8,6 +8,9 @@ on:
       - 'requirements.txt'
       - '.github/workflows/python-tests.yml'
   workflow_dispatch:
+permissions:
+  contents: read
+
 jobs:
   tests:
     runs-on: ubuntu-latest
@@ -23,3 +26,31 @@ jobs:
         run: python -m compileall -q app tests
       - name: Run offline regression tests
         run: python -m pytest -q tests
+
+  keep-only-main:
+    needs: tests
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BETCLIC_REPOSITORY: ${{ github.repository }}
+    steps:
+      - name: Remove the merged legacy branch after successful tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/$BETCLIC_REPOSITORY" --jq .default_branch)" = main
+          branch=feat/volleyball-live-api
+          branch_sha=$(gh api "repos/$BETCLIC_REPOSITORY/branches?per_page=100" --jq '.[] | select(.name == "feat/volleyball-live-api") | .commit.sha')
+          if [ -n "$branch_sha" ]; then
+            test "$branch_sha" = f9a63250ee715a4e10e78852e5b279b65ca0ed89
+            behind=$(gh api "repos/$BETCLIC_REPOSITORY/compare/$branch_sha...main" --jq .behind_by)
+            test "$behind" = 0
+            gh api --method DELETE "repos/$BETCLIC_REPOSITORY/git/refs/heads/$branch"
+          fi
+          remaining=$(gh api --paginate "repos/$BETCLIC_REPOSITORY/branches?per_page=100" --jq '.[].name')
+          test "$remaining" = main
+          echo "Only main remains."

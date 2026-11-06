@@ -24,7 +24,7 @@ This project uses **[TapsHTS/betclic-api](https://github.com/TapsHTS/betclic-api
 - Downstream WebSocket notifications when polling detects changes
 - Competition discovery catalog for reviewing Betclic's real competition names
 
-**Limitations:** Real Betclic gRPC push streaming has not been verified, and the upstream parser does not currently expose volleyball set scores, rally points or the serving team. These fields remain null rather than being fabricated. Competition filtering is conservative and needs verification against real data.
+**Limitations:** Streaming and score decoding remain experimental; see [README_API.md](README_API.md) for captured evidence and limits. The serving team is not decoded. Missing score notifications remain null. Actual availability of Poland, Italy and Japan fixtures depends on the upstream French offering.
 
 ## Installation
 
@@ -38,6 +38,12 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000
 Open `http://127.0.0.1:8000/docs` for the API documentation.
 
 See [README_API.md](README_API.md) for all endpoints, configuration, caveats and diagnostics.
+
+## Maintained version
+
+Use the `main` branch. The upstream dependency is pinned to the source commit validated by the snapshot regression tests. One-shot reads close the notification connection after a complete initial response, including an empty final page. The verified French men's league alias `Pologne Tauron Liga H.` is recognized; women's fixtures and season markets without two teams are excluded from match output.
+
+Run offline checks with `python -m pytest -q tests`. `python -m tools.probe_volleyball` is a bounded manual offering check. The existing experimental live-score and streaming modules remain available.
 
 ## Upstream and independence
 

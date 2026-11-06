@@ -18,3 +18,13 @@ def test_women_and_unknown_excluded():
 def test_french_gender_suffix():
     assert category("Ligue des Champions F.") is None
     assert category("Ligue des Champions H.") == "international:club"
+
+
+def test_french_domestic_league_aliases():
+    assert category("Pologne Tauron Liga H.", "Projekt Warszawa - Slepsk Suwalki") == "league:poland"
+    assert category("Italie Serie A1 H.") == "league:italy"
+    assert category("Japon SV.League H.") == "league:japan"
+    assert category("Pologne Tauron Liga F.") is None
+    assert category("Italie Serie A1 F.") is None
+    assert category("Japon SV.League F.") is None
+    assert category("Pologne Tauron Liga H.", "Team A F. - Team B F.") is None

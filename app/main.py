@@ -11,7 +11,7 @@ from dataclasses import asdict
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
-from betclic_api import BetclicClient
+from app.client import BetclicSnapshotClient
 from betclic_api.proto import encode_field_varint, encode_field_string
 from app.parser import parse_match_frames
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
@@ -69,7 +69,7 @@ def serialize(match, decoded_score=None):
 
 class Store:
     def __init__(self, client=None):
-        self.client = client or BetclicClient(timeout=(5, 8))
+        self.client = client or BetclicSnapshotClient(timeout=(5, 8))
         self.matches = {}
         self.listed = {}
         self.last_discovery = float("-inf")
@@ -99,12 +99,20 @@ class Store:
             if discovery_due:
                 listed = {}
                 catalog = {}
+                offset = 0
+                seen = set()
                 for page in range(PAGE_LIMIT):
-                    result = self.client.get_matches("volleyball", offset=page * 40)
+                    result = self.client.get_matches("volleyball", offset=offset)
                     discovery_count += 1
                     upstream_total = result.get("total", upstream_total)
                     batch = result.get("matches", [])
-                    for event in batch:
+                    if not batch:
+                        break
+                    fresh = [event for event in batch if event.id is not None and event.id not in seen]
+                    if not fresh:
+                        break
+                    seen.update(event.id for event in fresh)
+                    for event in fresh:
                         classification = category(event.competition, event.name)
                         key = str(event.competition_id or event.competition or "unknown")
                         entry = catalog.setdefault(key, {
@@ -115,10 +123,9 @@ class Store:
                             "included": bool(classification),
                         })
                         entry["events_count"] += 1
-                        if event.id is not None and classification:
+                        if classification and len(event.teams) == 2:
                             listed[event.id] = event
-                    if len(batch) < 40:
-                        break
+                    offset += len(batch)
 
             # Keep cached markets and scores, but only for events still in the listing.
             new = {}
@@ -319,6 +326,7 @@ async def lifespan(app: FastAPI):
         await store.task
     except asyncio.CancelledError:
         pass
+    store.client.close()
 
 app = FastAPI(title="Unofficial Betclic Men's Volleyball API", version="0.1.0", lifespan=lifespan)
 

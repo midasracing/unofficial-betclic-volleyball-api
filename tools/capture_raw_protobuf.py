@@ -10,7 +10,7 @@ import os
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
-from betclic_api import BetclicClient
+from app.client import BetclicSnapshotClient as BetclicClient
 from betclic_api.proto import encode_field_string, encode_field_varint
 
 OUT = Path(os.environ.get("BETCLIC_CAPTURE_DIR", "captures"))

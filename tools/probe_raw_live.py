@@ -7,7 +7,7 @@ Run: python -m tools.probe_raw_live
 """
 import json
 from datetime import datetime, timezone, timedelta
-from betclic_api import BetclicClient
+from app.client import BetclicSnapshotClient as BetclicClient
 from betclic_api.proto import encode_field_varint, encode_field_string, decode_protobuf, try_decode_string
 
 SPORTS = ("volleyball", "football")

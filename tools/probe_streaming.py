@@ -11,7 +11,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from betclic_api import BetclicClient
+from app.client import BetclicSnapshotClient as BetclicClient
 from app.betclic_scores import decode_score_frames
 from app.filters import category
 from app.scheduling import eligible_for_live_detail
