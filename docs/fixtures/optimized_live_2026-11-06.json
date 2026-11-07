@@ -1,0 +1,710 @@
+{
+  "started_at": "2026-11-06T22:15:19.606521+00:00",
+  "diagnostic_only": true,
+  "discovery": [
+    {
+      "sport": "volleyball",
+      "count": 40,
+      "candidate": 1269745541206016
+    }
+  ],
+  "frames": [
+    {
+      "at": 0.561,
+      "bytes": 9486,
+      "parse_microseconds": 389.639,
+      "score": {
+        "match_id": 1269745541206016,
+        "sport": "volleyball",
+        "current_period": "vlb_second_set",
+        "current_set_number": 2,
+        "current_points": {
+          "home": 11,
+          "away": 9
+        },
+        "completed_sets": [
+          {
+            "period": "vlb_first_set",
+            "home": 20,
+            "away": 25
+          }
+        ],
+        "sets_won_derived": {
+          "home": 0,
+          "away": 1
+        },
+        "source": "betclic_grpc_web_score_snapshot"
+      },
+      "market": {
+        "name": "Vainqueur du match",
+        "suspended": false,
+        "selections": [
+          {
+            "name": "Unilife Maringa F.",
+            "odds": 4.8
+          },
+          {
+            "name": "SESC-RJ F.",
+            "odds": 1.07
+          }
+        ]
+      },
+      "market_observed": true
+    },
+    {
+      "at": 6.862,
+      "bytes": 9486,
+      "parse_microseconds": 247.354,
+      "score": {
+        "match_id": 1269745541206016,
+        "sport": "volleyball",
+        "current_period": "vlb_second_set",
+        "current_set_number": 2,
+        "current_points": {
+          "home": 11,
+          "away": 9
+        },
+        "completed_sets": [
+          {
+            "period": "vlb_first_set",
+            "home": 20,
+            "away": 25
+          }
+        ],
+        "sets_won_derived": {
+          "home": 0,
+          "away": 1
+        },
+        "source": "betclic_grpc_web_score_snapshot"
+      },
+      "market": {
+        "name": "Vainqueur du match",
+        "suspended": false,
+        "selections": [
+          {
+            "name": "Unilife Maringa F.",
+            "odds": 4.8
+          },
+          {
+            "name": "SESC-RJ F.",
+            "odds": 1.07
+          }
+        ]
+      },
+      "market_observed": true
+    },
+    {
+      "at": 10.118,
+      "bytes": 9486,
+      "parse_microseconds": 204.639,
+      "score": {
+        "match_id": 1269745541206016,
+        "sport": "volleyball",
+        "current_period": "vlb_second_set",
+        "current_set_number": 2,
+        "current_points": {
+          "home": 11,
+          "away": 9
+        },
+        "completed_sets": [
+          {
+            "period": "vlb_first_set",
+            "home": 20,
+            "away": 25
+          }
+        ],
+        "sets_won_derived": {
+          "home": 0,
+          "away": 1
+        },
+        "source": "betclic_grpc_web_score_snapshot"
+      },
+      "market": {
+        "name": "Vainqueur du match",
+        "suspended": false,
+        "selections": [
+          {
+            "name": "Unilife Maringa F.",
+            "odds": 4.8
+          },
+          {
+            "name": "SESC-RJ F.",
+            "odds": 1.07
+          }
+        ]
+      },
+      "market_observed": true
+    },
+    {
+      "at": 10.121,
+      "bytes": 9486,
+      "parse_microseconds": 134.133,
+      "score": {
+        "match_id": 1269745541206016,
+        "sport": "volleyball",
+        "current_period": "vlb_second_set",
+        "current_set_number": 2,
+        "current_points": {
+          "home": 11,
+          "away": 9
+        },
+        "completed_sets": [
+          {
+            "period": "vlb_first_set",
+            "home": 20,
+            "away": 25
+          }
+        ],
+        "sets_won_derived": {
+          "home": 0,
+          "away": 1
+        },
+        "source": "betclic_grpc_web_score_snapshot"
+      },
+      "market": {
+        "name": "Vainqueur du match",
+        "suspended": false,
+        "selections": [
+          {
+            "name": "Unilife Maringa F.",
+            "odds": 4.8
+          },
+          {
+            "name": "SESC-RJ F.",
+            "odds": 1.07
+          }
+        ]
+      },
+      "market_observed": true
+    },
+    {
+      "at": 10.126,
+      "bytes": 9758,
+      "parse_microseconds": 141.464,
+      "score": {
+        "match_id": 1269745541206016,
+        "sport": "volleyball",
+        "current_period": "vlb_second_set",
+        "current_set_number": 2,
+        "current_points": {
+          "home": 11,
+          "away": 9
+        },
+        "completed_sets": [
+          {
+            "period": "vlb_first_set",
+            "home": 20,
+            "away": 25
+          }
+        ],
+        "sets_won_derived": {
+          "home": 0,
+          "away": 1
+        },
+        "source": "betclic_grpc_web_score_snapshot"
+      },
+      "market": {
+        "name": "Vainqueur du match",
+        "suspended": false,
+        "selections": [
+          {
+            "name": "Unilife Maringa F.",
+            "odds": 4.8
+          },
+          {
+            "name": "SESC-RJ F.",
+            "odds": 1.07
+          }
+        ]
+      },
+      "market_observed": true
+    },
+    {
+      "at": 18.004,
+      "bytes": 9758,
+      "parse_microseconds": 256.097,
+      "score": {
+        "match_id": 1269745541206016,
+        "sport": "volleyball",
+        "current_period": "vlb_second_set",
+        "current_set_number": 2,
+        "current_points": {
+          "home": 11,
+          "away": 9
+        },
+        "completed_sets": [
+          {
+            "period": "vlb_first_set",
+            "home": 20,
+            "away": 25
+          }
+        ],
+        "sets_won_derived": {
+          "home": 0,
+          "away": 1
+        },
+        "source": "betclic_grpc_web_score_snapshot"
+      },
+      "market": {
+        "name": "Vainqueur du match",
+        "suspended": false,
+        "selections": [
+          {
+            "name": "Unilife Maringa F.",
+            "odds": 4.8
+          },
+          {
+            "name": "SESC-RJ F.",
+            "odds": 1.07
+          }
+        ]
+      },
+      "market_observed": true
+    },
+    {
+      "at": 20.507,
+      "bytes": 9758,
+      "parse_microseconds": 203.117,
+      "score": {
+        "match_id": 1269745541206016,
+        "sport": "volleyball",
+        "current_period": "vlb_second_set",
+        "current_set_number": 2,
+        "current_points": {
+          "home": 11,
+          "away": 9
+        },
+        "completed_sets": [
+          {
+            "period": "vlb_first_set",
+            "home": 20,
+            "away": 25
+          }
+        ],
+        "sets_won_derived": {
+          "home": 0,
+          "away": 1
+        },
+        "source": "betclic_grpc_web_score_snapshot"
+      },
+      "market": {
+        "name": "Vainqueur du match",
+        "suspended": false,
+        "selections": [
+          {
+            "name": "Unilife Maringa F.",
+            "odds": 4.8
+          },
+          {
+            "name": "SESC-RJ F.",
+            "odds": 1.07
+          }
+        ]
+      },
+      "market_observed": true
+    },
+    {
+      "at": 21.05,
+      "bytes": 120,
+      "parse_microseconds": 100.963,
+      "score": {
+        "match_id": 1269745541206016,
+        "sport": "volleyball",
+        "current_period": "vlb_second_set",
+        "current_set_number": 2,
+        "current_points": {
+          "home": 11,
+          "away": 10
+        },
+        "completed_sets": [
+          {
+            "period": "vlb_first_set",
+            "home": 20,
+            "away": 25
+          }
+        ],
+        "sets_won_derived": {
+          "home": 0,
+          "away": 1
+        },
+        "source": "betclic_grpc_web_score_notification"
+      },
+      "market": null,
+      "market_observed": false
+    },
+    {
+      "at": 21.17,
+      "bytes": 9376,
+      "parse_microseconds": 210.888,
+      "score": {
+        "match_id": 1269745541206016,
+        "sport": "volleyball",
+        "current_period": "vlb_second_set",
+        "current_set_number": 2,
+        "current_points": {
+          "home": 11,
+          "away": 10
+        },
+        "completed_sets": [
+          {
+            "period": "vlb_first_set",
+            "home": 20,
+            "away": 25
+          }
+        ],
+        "sets_won_derived": {
+          "home": 0,
+          "away": 1
+        },
+        "source": "betclic_grpc_web_score_snapshot"
+      },
+      "market": {
+        "name": "Vainqueur du match",
+        "suspended": false,
+        "selections": [
+          {
+            "name": "Unilife Maringa F.",
+            "odds": 5.0
+          },
+          {
+            "name": "SESC-RJ F.",
+            "odds": 1.06
+          }
+        ]
+      },
+      "market_observed": true
+    },
+    {
+      "at": 46.047,
+      "bytes": 9410,
+      "parse_microseconds": 237.739,
+      "score": {
+        "match_id": 1269745541206016,
+        "sport": "volleyball",
+        "current_period": "vlb_second_set",
+        "current_set_number": 2,
+        "current_points": {
+          "home": 11,
+          "away": 10
+        },
+        "completed_sets": [
+          {
+            "period": "vlb_first_set",
+            "home": 20,
+            "away": 25
+          }
+        ],
+        "sets_won_derived": {
+          "home": 0,
+          "away": 1
+        },
+        "source": "betclic_grpc_web_score_snapshot"
+      },
+      "market": {
+        "name": "Vainqueur du match",
+        "suspended": false,
+        "selections": [
+          {
+            "name": "Unilife Maringa F.",
+            "odds": 5.0
+          },
+          {
+            "name": "SESC-RJ F.",
+            "odds": 1.06
+          }
+        ]
+      },
+      "market_observed": true
+    },
+    {
+      "at": 49.984,
+      "bytes": 9410,
+      "parse_microseconds": 300.444,
+      "score": {
+        "match_id": 1269745541206016,
+        "sport": "volleyball",
+        "current_period": "vlb_second_set",
+        "current_set_number": 2,
+        "current_points": {
+          "home": 11,
+          "away": 10
+        },
+        "completed_sets": [
+          {
+            "period": "vlb_first_set",
+            "home": 20,
+            "away": 25
+          }
+        ],
+        "sets_won_derived": {
+          "home": 0,
+          "away": 1
+        },
+        "source": "betclic_grpc_web_score_snapshot"
+      },
+      "market": {
+        "name": "Vainqueur du match",
+        "suspended": false,
+        "selections": [
+          {
+            "name": "Unilife Maringa F.",
+            "odds": 5.0
+          },
+          {
+            "name": "SESC-RJ F.",
+            "odds": 1.06
+          }
+        ]
+      },
+      "market_observed": true
+    },
+    {
+      "at": 58.841,
+      "bytes": 9410,
+      "parse_microseconds": 419.565,
+      "score": {
+        "match_id": 1269745541206016,
+        "sport": "volleyball",
+        "current_period": "vlb_second_set",
+        "current_set_number": 2,
+        "current_points": {
+          "home": 11,
+          "away": 10
+        },
+        "completed_sets": [
+          {
+            "period": "vlb_first_set",
+            "home": 20,
+            "away": 25
+          }
+        ],
+        "sets_won_derived": {
+          "home": 0,
+          "away": 1
+        },
+        "source": "betclic_grpc_web_score_snapshot"
+      },
+      "market": {
+        "name": "Vainqueur du match",
+        "suspended": false,
+        "selections": [
+          {
+            "name": "Unilife Maringa F.",
+            "odds": 5.0
+          },
+          {
+            "name": "SESC-RJ F.",
+            "odds": 1.06
+          }
+        ]
+      },
+      "market_observed": true
+    },
+    {
+      "at": 58.841,
+      "bytes": 9410,
+      "parse_microseconds": 124.699,
+      "score": {
+        "match_id": 1269745541206016,
+        "sport": "volleyball",
+        "current_period": "vlb_second_set",
+        "current_set_number": 2,
+        "current_points": {
+          "home": 11,
+          "away": 10
+        },
+        "completed_sets": [
+          {
+            "period": "vlb_first_set",
+            "home": 20,
+            "away": 25
+          }
+        ],
+        "sets_won_derived": {
+          "home": 0,
+          "away": 1
+        },
+        "source": "betclic_grpc_web_score_snapshot"
+      },
+      "market": {
+        "name": "Vainqueur du match",
+        "suspended": false,
+        "selections": [
+          {
+            "name": "Unilife Maringa F.",
+            "odds": 5.0
+          },
+          {
+            "name": "SESC-RJ F.",
+            "odds": 1.06
+          }
+        ]
+      },
+      "market_observed": true
+    },
+    {
+      "at": 58.844,
+      "bytes": 9682,
+      "parse_microseconds": 198.23,
+      "score": {
+        "match_id": 1269745541206016,
+        "sport": "volleyball",
+        "current_period": "vlb_second_set",
+        "current_set_number": 2,
+        "current_points": {
+          "home": 11,
+          "away": 10
+        },
+        "completed_sets": [
+          {
+            "period": "vlb_first_set",
+            "home": 20,
+            "away": 25
+          }
+        ],
+        "sets_won_derived": {
+          "home": 0,
+          "away": 1
+        },
+        "source": "betclic_grpc_web_score_snapshot"
+      },
+      "market": {
+        "name": "Vainqueur du match",
+        "suspended": false,
+        "selections": [
+          {
+            "name": "Unilife Maringa F.",
+            "odds": 5.0
+          },
+          {
+            "name": "SESC-RJ F.",
+            "odds": 1.06
+          }
+        ]
+      },
+      "market_observed": true
+    },
+    {
+      "at": 71.191,
+      "bytes": 120,
+      "parse_microseconds": 113.351,
+      "score": {
+        "match_id": 1269745541206016,
+        "sport": "volleyball",
+        "current_period": "vlb_second_set",
+        "current_set_number": 2,
+        "current_points": {
+          "home": 11,
+          "away": 11
+        },
+        "completed_sets": [
+          {
+            "period": "vlb_first_set",
+            "home": 20,
+            "away": 25
+          }
+        ],
+        "sets_won_derived": {
+          "home": 0,
+          "away": 1
+        },
+        "source": "betclic_grpc_web_score_notification"
+      },
+      "market": null,
+      "market_observed": false
+    },
+    {
+      "at": 71.243,
+      "bytes": 9410,
+      "parse_microseconds": 208.986,
+      "score": {
+        "match_id": 1269745541206016,
+        "sport": "volleyball",
+        "current_period": "vlb_second_set",
+        "current_set_number": 2,
+        "current_points": {
+          "home": 11,
+          "away": 11
+        },
+        "completed_sets": [
+          {
+            "period": "vlb_first_set",
+            "home": 20,
+            "away": 25
+          }
+        ],
+        "sets_won_derived": {
+          "home": 0,
+          "away": 1
+        },
+        "source": "betclic_grpc_web_score_snapshot"
+      },
+      "market": {
+        "name": "Vainqueur du match",
+        "suspended": false,
+        "selections": [
+          {
+            "name": "Unilife Maringa F.",
+            "odds": 5.8
+          },
+          {
+            "name": "SESC-RJ F.",
+            "odds": 1.04
+          }
+        ]
+      },
+      "market_observed": true
+    },
+    {
+      "at": 82.478,
+      "bytes": 9410,
+      "parse_microseconds": 215.246,
+      "score": {
+        "match_id": 1269745541206016,
+        "sport": "volleyball",
+        "current_period": "vlb_second_set",
+        "current_set_number": 2,
+        "current_points": {
+          "home": 11,
+          "away": 11
+        },
+        "completed_sets": [
+          {
+            "period": "vlb_first_set",
+            "home": 20,
+            "away": 25
+          }
+        ],
+        "sets_won_derived": {
+          "home": 0,
+          "away": 1
+        },
+        "source": "betclic_grpc_web_score_snapshot"
+      },
+      "market": {
+        "name": "Vainqueur du match",
+        "suspended": false,
+        "selections": [
+          {
+            "name": "Unilife Maringa F.",
+            "odds": 5.8
+          },
+          {
+            "name": "SESC-RJ F.",
+            "odds": 1.04
+          }
+        ]
+      },
+      "market_observed": true
+    }
+  ],
+  "event": {
+    "id": 1269745541206016,
+    "name": "Unilife Maringa F. - SESC-RJ F.",
+    "sport": "volleyball",
+    "starts_at": "2026-11-06T21:30:00.0000000Z"
+  },
+  "end": "stopped",
+  "elapsed": 106.057,
+  "finished_at": "2026-11-06T22:17:06.101151+00:00"
+}

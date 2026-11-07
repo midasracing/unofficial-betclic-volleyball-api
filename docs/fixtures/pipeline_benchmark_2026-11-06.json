@@ -1,0 +1,422 @@
+{
+  "baseline_commit": "4152798ece2dd7d1b75b0bed9245a5c5e000de06",
+  "frames": 99,
+  "repeats": 20,
+  "runs": 5,
+  "old_seconds": [
+    1.2649804180000501,
+    1.0594272339999407,
+    1.0667708559999483,
+    1.0793583210001998,
+    1.1073804379998364
+  ],
+  "new_seconds": [
+    0.11728075800010629,
+    0.1276829739999812,
+    0.12304755600007411,
+    0.1245678959999168,
+    0.12376758599975801
+  ],
+  "old_median_seconds": 1.0793583210001998,
+  "new_median_seconds": 0.12376758599975801,
+  "speedup": 8.720848130643109,
+  "winner_snapshots_compared": 23,
+  "inputs": [
+    {
+      "file": "table_tennis_1271444851941376_s1_f0.protobuf.bin",
+      "sha256": "bd620142242669cfa0274f9caa5ebdd7806573aaca65b752fd068966270a77b2"
+    },
+    {
+      "file": "table_tennis_1271444851941376_s2_f1.protobuf.bin",
+      "sha256": "bd620142242669cfa0274f9caa5ebdd7806573aaca65b752fd068966270a77b2"
+    },
+    {
+      "file": "table_tennis_1271444851941376_s2_f2.protobuf.bin",
+      "sha256": "c4a10e168cc5698196961ba178b7ec15db07af44bcf49d00eda14a461fb9d9cb"
+    },
+    {
+      "file": "table_tennis_1271444851941376_s2_f3.protobuf.bin",
+      "sha256": "8de14c634236a6b8013085231337ab53c9327c29be160aaedda62fe80fd0ed06"
+    },
+    {
+      "file": "tennis_1271618119696384_s1_f0.protobuf.bin",
+      "sha256": "94f91dd8f85a9e160bda8267a46282cf2ee4b5e2a7de271e2f4a84ee62374010"
+    },
+    {
+      "file": "tennis_1271618119696384_s1_f1.protobuf.bin",
+      "sha256": "94f91dd8f85a9e160bda8267a46282cf2ee4b5e2a7de271e2f4a84ee62374010"
+    },
+    {
+      "file": "tennis_1271618119696384_s1_f2.protobuf.bin",
+      "sha256": "49d83238eb8e4fdda086a4f8e0d263143c1fb930fc2c5167304867b2bfa28696"
+    },
+    {
+      "file": "tennis_1271618119696384_s1_f3.protobuf.bin",
+      "sha256": "da1a4cc683b695298da1a00fa2e8e71ebd29cc62a1ab1edd0d85a7e12d3b609a"
+    },
+    {
+      "file": "tennis_1271618119696384_s1_f4.protobuf.bin",
+      "sha256": "da1a4cc683b695298da1a00fa2e8e71ebd29cc62a1ab1edd0d85a7e12d3b609a"
+    },
+    {
+      "file": "tennis_1271618119696384_s1_f5.protobuf.bin",
+      "sha256": "372a629c6747f7470e476a43c3d35d313beed562c3c2bf33051c1f72c13c1133"
+    },
+    {
+      "file": "tennis_1271618119696384_s1_f6.protobuf.bin",
+      "sha256": "62704668db91414230d1f2ae44824ae02a060aed12de3044fae721052a7881ab"
+    },
+    {
+      "file": "tennis_1271618119696384_s1_f7.protobuf.bin",
+      "sha256": "62704668db91414230d1f2ae44824ae02a060aed12de3044fae721052a7881ab"
+    },
+    {
+      "file": "tennis_1271618119696384_s1_f8.protobuf.bin",
+      "sha256": "954900aa50864b3bda1045d300563b9165555fe518109113d268794f887028d7"
+    },
+    {
+      "file": "tennis_1271618119696384_s1_f9.protobuf.bin",
+      "sha256": "21ace5f47f79e1fe4785fc9f4738cf08c35f99c36f1191f970bd8b6bfb9f5986"
+    },
+    {
+      "file": "tennis_1271618119696384_s1_f10.protobuf.bin",
+      "sha256": "e307e2b9f0796e8836f21b00ff95772b7b2b8ef86a55c1d07a2204227cc529a1"
+    },
+    {
+      "file": "tennis_1271618119696384_s1_f11.protobuf.bin",
+      "sha256": "a3e05292f7281dd83deda585585b32b3e35afee6d4e6ba8464fbebef5892d597"
+    },
+    {
+      "file": "tennis_1271618119696384_s1_f12.protobuf.bin",
+      "sha256": "959af4a630e053372349db0b79c4bbc299497ccb5125b0fec230fe68accd77ca"
+    },
+    {
+      "file": "tennis_1271618119696384_s1_f13.protobuf.bin",
+      "sha256": "14fbffb37146ea1df368ff1e301613ff8b9f939944ad0b623996ecb3abce236a"
+    },
+    {
+      "file": "tennis_1271618119696384_s1_f14.protobuf.bin",
+      "sha256": "581e9ee5ab12427f5474a52bf857b66e1ad44c5cd0588f8d1e130e77fabcdeaf"
+    },
+    {
+      "file": "tennis_1271618119696384_s1_f15.protobuf.bin",
+      "sha256": "581e9ee5ab12427f5474a52bf857b66e1ad44c5cd0588f8d1e130e77fabcdeaf"
+    },
+    {
+      "file": "tennis_1271618119696384_s1_f16.protobuf.bin",
+      "sha256": "a0c1e9a31741e08243941924bea42270ed8c305c26243b6e971433ee0d6f22d4"
+    },
+    {
+      "file": "tennis_1271618119696384_s1_f17.protobuf.bin",
+      "sha256": "8f73e8ff39daabb1b3e9c6b578d0694e409e0fc1293d1da3ca3c36a1cf7870f6"
+    },
+    {
+      "file": "tennis_1271618119696384_s1_f18.protobuf.bin",
+      "sha256": "2eb5b896944966743d79ed211717d62601e76740131d4f6f56333475a628f430"
+    },
+    {
+      "file": "tennis_1271618119696384_s1_f19.protobuf.bin",
+      "sha256": "d5827aed9dbd3e1ae04471eae960260075c69ccda5f67b9fab5ad7e234ec8587"
+    },
+    {
+      "file": "tennis_1271618119696384_s1_f20.protobuf.bin",
+      "sha256": "d5827aed9dbd3e1ae04471eae960260075c69ccda5f67b9fab5ad7e234ec8587"
+    },
+    {
+      "file": "tennis_1271618119696384_s1_f21.protobuf.bin",
+      "sha256": "e62b7d7af48606f67fa4aa067cc468f7df686658741a1c58997ca8a1ce969697"
+    },
+    {
+      "file": "tennis_1271618119696384_s1_f22.protobuf.bin",
+      "sha256": "e62b7d7af48606f67fa4aa067cc468f7df686658741a1c58997ca8a1ce969697"
+    },
+    {
+      "file": "tennis_1271618119696384_s1_f23.protobuf.bin",
+      "sha256": "ea196fd42b68d127cbf2e2764d309b7460e4ddbbbf158d00e0636ab84af49598"
+    },
+    {
+      "file": "tennis_1271618119696384_s1_f24.protobuf.bin",
+      "sha256": "49d83238eb8e4fdda086a4f8e0d263143c1fb930fc2c5167304867b2bfa28696"
+    },
+    {
+      "file": "tennis_1271618119696384_s1_f25.protobuf.bin",
+      "sha256": "c28f30bf77923f3b4a87b0ec32c1bb50a784b7470679d84ba27f3d90f28bd06d"
+    },
+    {
+      "file": "tennis_1271618119696384_s2_f26.protobuf.bin",
+      "sha256": "6497905587ecdf4308bf5558dd405c9ea97f92f47214ac385ba8971966b84041"
+    },
+    {
+      "file": "tennis_1271618119696384_s3_f27.protobuf.bin",
+      "sha256": "e7f65aa12b1845290f45c5a5f17079b58611cd26f53ed4f5a2958f143d3a2c08"
+    },
+    {
+      "file": "tennis_1271618119696384_s3_f28.protobuf.bin",
+      "sha256": "ca26cda139234fa8d13b46ab2b409516f0a3d0ccd4168b07a249dd2cc2287d9d"
+    },
+    {
+      "file": "tennis_1271618119696384_s3_f29.protobuf.bin",
+      "sha256": "faba18ad4aa073450ff015919237b17a3e192b6b7df336798d2b5dfc686b4d10"
+    },
+    {
+      "file": "tennis_1271618119696384_s3_f30.protobuf.bin",
+      "sha256": "fce415234456eaed010b50f24a46b661b4ba36e03a4d1a53c51f242eceb28fcd"
+    },
+    {
+      "file": "tennis_1271618119696384_s3_f31.protobuf.bin",
+      "sha256": "32e2d33190bafa52a41b10bf28e10f0d725bb2dde93dd3b7263dd27cbc73664b"
+    },
+    {
+      "file": "tennis_1271618119696384_s3_f32.protobuf.bin",
+      "sha256": "32e2d33190bafa52a41b10bf28e10f0d725bb2dde93dd3b7263dd27cbc73664b"
+    },
+    {
+      "file": "tennis_1271618119696384_s3_f33.protobuf.bin",
+      "sha256": "daf689528fd5e0f1c4a1e0318f07342434dfa01c48e18b1ee80cc3f1db39d0e6"
+    },
+    {
+      "file": "tennis_1271618119696384_s3_f34.protobuf.bin",
+      "sha256": "a0ad13d32c609e42892036f693581ce4c0df207ade6eb391a5c0ee3ce354aa13"
+    },
+    {
+      "file": "tennis_1271618119696384_s3_f35.protobuf.bin",
+      "sha256": "c2b979e44f5ad6c499db5547310f51dd1ff1c89bba9e6f34bd6f2b73a5e17455"
+    },
+    {
+      "file": "tennis_1271618119696384_s3_f36.protobuf.bin",
+      "sha256": "a62c66d19e97ce16b60f3e0295afa5da4deb8619b3be22412d514781510c307b"
+    },
+    {
+      "file": "tennis_1271618119696384_s3_f37.protobuf.bin",
+      "sha256": "d5737d0df539b0c2e1c0a2589dbdf0b399c7168c0ef3c0f6467314a848381a33"
+    },
+    {
+      "file": "tennis_1271618119696384_s3_f38.protobuf.bin",
+      "sha256": "6fd394e1fbe1f3b850efca0dde7dbfa68cff3a7be7327f94785b4ac3f232fb72"
+    },
+    {
+      "file": "tennis_1271618119696384_s3_f39.protobuf.bin",
+      "sha256": "8552be5a0f81f1563cba33365bf2f5bd61d6d56e6732eacad313090de2572239"
+    },
+    {
+      "file": "tennis_1271618119696384_s3_f40.protobuf.bin",
+      "sha256": "a45c44bbcb88f816e4bd2b44e021a930bef8b697f0eff6a513987ab16e8dba0a"
+    },
+    {
+      "file": "tennis_1271618119696384_s3_f41.protobuf.bin",
+      "sha256": "eed9f72c17ebd4d757c1b80129b0944f1be93a22b147f371d3e4a492a798f219"
+    },
+    {
+      "file": "tennis_1271618119696384_s3_f42.protobuf.bin",
+      "sha256": "8edffcf6e5f946cc9550f07630c891e49879f9f7f296a879970d41c0521197b4"
+    },
+    {
+      "file": "tennis_1271618119696384_s3_f43.protobuf.bin",
+      "sha256": "1c880151e65a6c16e29c8035b85245a25b108c14fd669bb3b4b052fde9bddb6c"
+    },
+    {
+      "file": "tennis_1271618119696384_s3_f44.protobuf.bin",
+      "sha256": "a297fe4c3e19cd6266bcc2458b5c123dcfafaf4f56b2a4ed510dac1e8d5651cd"
+    },
+    {
+      "file": "tennis_1271618119696384_s3_f45.protobuf.bin",
+      "sha256": "b26504568edfb4ad19f07cf55623af2d363c66b07c2d11fa800c03f5c306fa45"
+    },
+    {
+      "file": "tennis_1271618119696384_s3_f46.protobuf.bin",
+      "sha256": "54b95e6554f1b5dbaea9f84d0f88b430a48ca968219da8a0b799b45357d790a0"
+    },
+    {
+      "file": "tennis_1271618119696384_s3_f47.protobuf.bin",
+      "sha256": "ba10742b73de7ec904b5dbae49d215e8c8730ca89a683901754aef32d346d379"
+    },
+    {
+      "file": "tennis_1271618119696384_s4_f48.protobuf.bin",
+      "sha256": "993911af845ea171eb9c24f3be484c26f388338708c225b9958dfa218e6ba462"
+    },
+    {
+      "file": "tennis_1271618119696384_s4_f49.protobuf.bin",
+      "sha256": "3af4a6f31e796e2e4eb49ac8966db752dfdd1a308347e977c89d7096e3d0047d"
+    },
+    {
+      "file": "tennis_1271618119696384_s4_f50.protobuf.bin",
+      "sha256": "b48ea95310d009568d435c81571c6465f9da683dc7276c75bd98e42a10607c2b"
+    },
+    {
+      "file": "tennis_1271618119696384_s4_f51.protobuf.bin",
+      "sha256": "c410bb36788e52a8583d60035a74c9b4f951eab88313e6c7428af170477e9006"
+    },
+    {
+      "file": "tennis_1271618119696384_s4_f52.protobuf.bin",
+      "sha256": "afd4d5751c171b191411b630ea3a65e3c26a632eb2633169ddb79219e6cd1894"
+    },
+    {
+      "file": "tennis_1271618119696384_s4_f53.protobuf.bin",
+      "sha256": "e8cc8d3d2bff4b160ed09a136165b5324aee6b597859acc6ac7dd01a4b5e9ff4"
+    },
+    {
+      "file": "tennis_1271618119696384_s4_f54.protobuf.bin",
+      "sha256": "e8cc8d3d2bff4b160ed09a136165b5324aee6b597859acc6ac7dd01a4b5e9ff4"
+    },
+    {
+      "file": "tennis_1271618119696384_s4_f55.protobuf.bin",
+      "sha256": "7a4981d06d885613fd3dbf8d9e722760c4644905ad4eaaf649070905d1aa0316"
+    },
+    {
+      "file": "tennis_1271618119696384_s4_f56.protobuf.bin",
+      "sha256": "327088dfcee72cc1d67969e8ca43d06e1ee583cf535e831d874a916da4642b77"
+    },
+    {
+      "file": "tennis_1271618119696384_s4_f57.protobuf.bin",
+      "sha256": "98f2dda18380468956a4a0c05014983c02fa1b1eaaec1b95901ca0e49bc98501"
+    },
+    {
+      "file": "tennis_1271664163708928_s1_f0.protobuf.bin",
+      "sha256": "a73bb979fd3c4cc2e0fd27b14d2c0ead4cd0d97095f1c7ef2a9cfd6407c27b00"
+    },
+    {
+      "file": "tennis_1271664163708928_s1_f1.protobuf.bin",
+      "sha256": "a73bb979fd3c4cc2e0fd27b14d2c0ead4cd0d97095f1c7ef2a9cfd6407c27b00"
+    },
+    {
+      "file": "tennis_1271664163708928_s1_f2.protobuf.bin",
+      "sha256": "448023a91154ca8caee7b328c680a73fcef7c29e6638e5fca225ecb9940a7bc8"
+    },
+    {
+      "file": "tennis_1271664163708928_s1_f3.protobuf.bin",
+      "sha256": "a75757b024a86c016b919422d93cf4d0143859d1b0750862efe6db23c1189eec"
+    },
+    {
+      "file": "tennis_1271664163708928_s1_f4.protobuf.bin",
+      "sha256": "a75757b024a86c016b919422d93cf4d0143859d1b0750862efe6db23c1189eec"
+    },
+    {
+      "file": "tennis_1271664163708928_s1_f5.protobuf.bin",
+      "sha256": "1df4ec67028c2e06e5df437011609d3c9ab031e745b32d001c3f8ac14b1128bf"
+    },
+    {
+      "file": "tennis_1271664163708928_s1_f6.protobuf.bin",
+      "sha256": "8fc1d6636da76ff1bee1d5de4b9eeaa6a79e86412b6dcab3048a0f84b8176d3f"
+    },
+    {
+      "file": "tennis_1271664163708928_s1_f7.protobuf.bin",
+      "sha256": "06fd2e5cd4ddbf23c961131b3a8dec2c873409acc87fbeb3579eef84eec92b9c"
+    },
+    {
+      "file": "tennis_1271664163708928_s1_f8.protobuf.bin",
+      "sha256": "4519ff0c8879a1e99b5079f2331e19890e4476f813bec1d98b657a33d8bfd181"
+    },
+    {
+      "file": "tennis_1271664163708928_s1_f9.protobuf.bin",
+      "sha256": "90396927166a509aceea2240b42cc0ded73c6b3e0f8a602e28c6a2dadc3b7a69"
+    },
+    {
+      "file": "tennis_1271664163708928_s1_f10.protobuf.bin",
+      "sha256": "aa06a156b0108215b5e68cc25ce406d7f6db3795a78a5edb50d660bedebf52a9"
+    },
+    {
+      "file": "tennis_1271664163708928_s1_f11.protobuf.bin",
+      "sha256": "aa06a156b0108215b5e68cc25ce406d7f6db3795a78a5edb50d660bedebf52a9"
+    },
+    {
+      "file": "tennis_1271664163708928_s1_f12.protobuf.bin",
+      "sha256": "9f441065e548aee947f1f3b268ad9cf4fa6cd8890e56a0025313dfb9c886a157"
+    },
+    {
+      "file": "tennis_1271664163708928_s1_f13.protobuf.bin",
+      "sha256": "bc34bd1462d74cefdbca9cb47a3e8e3bd098b65eec0d777c0fc3d5c6c2b7c9ba"
+    },
+    {
+      "file": "tennis_1271664163708928_s1_f14.protobuf.bin",
+      "sha256": "bc34bd1462d74cefdbca9cb47a3e8e3bd098b65eec0d777c0fc3d5c6c2b7c9ba"
+    },
+    {
+      "file": "tennis_1271664163708928_s1_f15.protobuf.bin",
+      "sha256": "bafa10696b8cc8ecbefab36f707d4496a778376f52460d73034569918e615252"
+    },
+    {
+      "file": "tennis_1271664163708928_s1_f16.protobuf.bin",
+      "sha256": "b25dc62c3cc86bb4e2cc7c96b574a20a00d79cf82359175b141b53828ab2aca6"
+    },
+    {
+      "file": "tennis_1271664163708928_s1_f17.protobuf.bin",
+      "sha256": "4c49eb38ef86181d0eda608200e79112d864029cf2026179f0e3993dab3a2e6d"
+    },
+    {
+      "file": "tennis_1271664163708928_s1_f18.protobuf.bin",
+      "sha256": "4c49eb38ef86181d0eda608200e79112d864029cf2026179f0e3993dab3a2e6d"
+    },
+    {
+      "file": "tennis_1271664163708928_s1_f19.protobuf.bin",
+      "sha256": "0981f6c32193475ca67c7a35ea6a3d06d5b3e7587fb0ca90957d503b46763f40"
+    },
+    {
+      "file": "tennis_1271664163708928_s1_f20.protobuf.bin",
+      "sha256": "147fd7bc7d93b9a9845c55166cdefa860df928fb2cd992180470c10310d56991"
+    },
+    {
+      "file": "tennis_1271664163708928_s2_f21.protobuf.bin",
+      "sha256": "915e63b2202242f39495af2b36b28761b335d6224df8eabccedb1335cd6cb60a"
+    },
+    {
+      "file": "tennis_1271664163708928_s2_f22.protobuf.bin",
+      "sha256": "88e4da82ca66b2c491f9d071648f9aed4846a0fcda1f7a9f195585025adb99f0"
+    },
+    {
+      "file": "tennis_1271664163708928_s2_f23.protobuf.bin",
+      "sha256": "611edc35bb2b96284a8a5a1a529e7f82f04adbe1d5fc648f185c2eb811a97fe5"
+    },
+    {
+      "file": "tennis_1271664163708928_s2_f24.protobuf.bin",
+      "sha256": "65b3ae367f8c117b1e82b28a0217e67af1c2f5fd772de86ff23fd3230da62aca"
+    },
+    {
+      "file": "tennis_1271664163708928_s2_f25.protobuf.bin",
+      "sha256": "b73602adc62361acbfdf76f233d1371205c582f6b399091f3cc6e6f94d36bbcb"
+    },
+    {
+      "file": "tennis_1271664163708928_s2_f26.protobuf.bin",
+      "sha256": "2328ce9b91cdc4805a71b03d22da6ab2ff06d69e927e1b5c2c5f5b2dab2a1d46"
+    },
+    {
+      "file": "tennis_1271664163708928_s3_f27.protobuf.bin",
+      "sha256": "94b494a35f0968bbcc58066af8d9c6255d8548a3bf3eb2c4080a5d7ab5e81c46"
+    },
+    {
+      "file": "tennis_1271664163708928_s3_f28.protobuf.bin",
+      "sha256": "94b494a35f0968bbcc58066af8d9c6255d8548a3bf3eb2c4080a5d7ab5e81c46"
+    },
+    {
+      "file": "tennis_1271664163708928_s3_f29.protobuf.bin",
+      "sha256": "1b532360ecae3ab455f17c3115f4d7d02087940936b92a242a42263f1ec137b2"
+    },
+    {
+      "file": "tennis_1271664163708928_s3_f30.protobuf.bin",
+      "sha256": "d17811f81dba36bf293e5edb6f1300ce1cafa074a782c3bf0c00303f030acbf9"
+    },
+    {
+      "file": "tennis_1271664163708928_s3_f31.protobuf.bin",
+      "sha256": "42b7a3c91101145a9c099c0aa2273c6cb1a3a643b6dcef7a0d5ee10150049cad"
+    },
+    {
+      "file": "tennis_1271664163708928_s3_f32.protobuf.bin",
+      "sha256": "ed59443dc90fb8a6ee89144ca606cb64358dc86fd3129efe750bc5393d587d9f"
+    },
+    {
+      "file": "tennis_1271664163708928_s4_f33.protobuf.bin",
+      "sha256": "7628d05923eba5bf8a512955cdac20d4babc209cd2d6950bb175f4beafdda9eb"
+    },
+    {
+      "file": "tennis_1271664163708928_s4_f34.protobuf.bin",
+      "sha256": "e4012809c896194665946863444ea790fe7d82444e712530acf22b933e70e18e"
+    },
+    {
+      "file": "tennis_1271664163708928_s4_f35.protobuf.bin",
+      "sha256": "4579ebac8ed2e3896527e0774c319b08ed5a53c7fce1866832b11b88917de3cd"
+    },
+    {
+      "file": "tennis_1271664163708928_s4_f36.protobuf.bin",
+      "sha256": "4579ebac8ed2e3896527e0774c319b08ed5a53c7fce1866832b11b88917de3cd"
+    }
+  ]
+}

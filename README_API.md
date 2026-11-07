@@ -15,6 +15,13 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000
 
 Docs: http://127.0.0.1:8000/docs
 
+For deployment, use the included Dockerfile with exactly one worker. The
+`render.yaml` blueprint defines a free service. `CORS_ORIGINS` defaults to
+`https://midasracing.github.io`; set a comma-separated list for other frontend
+origins. A frontend needs the deployed HTTPS API base URL and its WSS
+`/api/v1/live` endpoint. Committing this repository does not create a hosted
+service. See [the PlusLiga verification](docs/PLUSLIGA_LIVE_2026-11-07.md).
+
 - `GET /health`
 - `GET /api/v1/matches`
 - `GET /api/v1/matches/live`
@@ -38,8 +45,8 @@ Docs: http://127.0.0.1:8000/docs
   mode (default), one persistent gRPC-web HTTP connection per monitored
   fixture is maintained (default: at most one fixture per target league,
   three total). Sustained multi-frame score updates over one connection were
-  confirmed in a short probe on 2026-11-05, but full-day stability and live
-  price-change parsing still require verification.
+  confirmed in short probes, including score and winner-price changes on
+  2026-11-06. Full-day reliability still requires verification.
 - Match discovery is checked no more often than every 10 minutes by default;
   REST/WebSocket clients never trigger Betclic requests. Do not run multiple
   server workers/instances without external leader election.
@@ -65,6 +72,9 @@ Docs: http://127.0.0.1:8000/docs
   Explicit women's markers still take precedence over that ID. Other unknown
   or ambiguous competition names remain excluded.
 - Results may be missing or stale during upstream failure; inspect /health.
+- Missing legacy live flags are recovered from verified nonzero volleyball scores
+  in the listing, only after a recent scheduled start. Future/unknown starts,
+  zero placeholders and decided best-of-five matches are not promoted.
 - Respect terms of service and data-provider restrictions. No automated betting.
 
 ## Configuration
@@ -113,7 +123,7 @@ so it cannot replace a newer pushed score or odds with its older cached copy.
 
 ## Output conventions
 
-Each normalized match includes `sport`, `gender`, `provider`, `status`, `market_count`, and `source_data`. The latter preserves **every field already decoded by the upstream Python dataclass** and is not a dump of unknown raw protobuf tags. The normalized `score`, `sets`, `current_set`, and `current_points` fields are populated when a verified score-notification frame is observed; otherwise null. `serving_team` remains null. The `status` value `scheduled_or_unknown` does **not** mean Betclic confirmed a match is scheduled rather than completed.
+Each normalized match includes `sport`, `gender`, `provider`, `status`, `market_count`, and `source_data`. The latter preserves dataclass fields after this client's live-flag correction; it is not a dump of raw protobuf tags. The normalized `score`, `sets`, `current_set`, and `current_points` fields are populated when a verified score-notification frame is observed; otherwise null. `serving_team` remains null. The `status` value `scheduled_or_unknown` does **not** mean Betclic confirmed a match is scheduled rather than completed.
 
 `/api/v1/catalog` helps identify competition aliases and which were excluded by conservative filters. It shows names and counts, not excluded events. It is intended for diagnostics and may reveal women's competition names; the /matches endpoints still filter them. Periodic polling is not equivalent to Betclic source streaming.
 
@@ -173,11 +183,38 @@ proof of upstream activity: inspect `GET /health` for stream state and
 `last_frame_at`. When no fresh upstream frame has arrived, the frontend must
 not label old values as fresh.
 
-The score decoder is validated against a single captured notification. The
-price parser may require additional adaptation if Betclic sends incremental
-odds deltas instead of full detail snapshots. Unknown delta messages are not
-silently converted into odds updates. Do not increase upstream concurrency
-until the actual behavior has been inspected and authorized.
+`app.live_parser.LiveMatchParser` reads score entries from both initial snapshots
+and score notifications. Multiple notifications in one envelope are processed
+in order. Snapshot recovery can therefore restore points before the next rally
+notification arrives. The legacy `score_status` value is retained; `score_source`
+identifies a snapshot or notification.
+
+Winner-price deltas are applied immediately only after a two-selection winner
+snapshot establishes the match, market and selection IDs. The mapping resets
+for every new upstream connection. Other matches/markets and unknown IDs are
+ignored. Numeric delta availability codes are not interpreted as suspension or
+resumption. An explicit invalid/unit-price winner snapshot or a known-selection
+invalid delta withdraws the quote (`market: null`) until valid prices return.
+Prices must be finite, greater than 1 and less than 10000 after rounding.
+
+The live path parses only winner markets and supported score entries. It does
+not construct all unused markets. Identical confirmations refresh observation
+timestamps without publishing another full match update. The collector also
+skips catalog copying and worker-thread work between actual discovery cycles.
+`/matches.updated_at` reflects cached data observations and `/score.updated_at`
+uses the score observation time; `/catalog.updated_at` remains catalog discovery.
+
+Each WebSocket client has a bounded queue with one pending latest state per
+match. A slow client receives current state instead of replaying every
+intermediate point/price snapshot. If too many distinct matches overflow that
+queue, the next message is a fresh `snapshot`; clients must treat **every**
+snapshot as authoritative, including snapshots received after the first one.
+Heartbeat messages include per-active-match `observations` with
+`score_observed_at` and `odds_observed_at`, so quiet-but-confirmed values can
+refresh their freshness indicators. This stream serves latest state, not a
+complete event history.
+
+See [the pipeline benchmark and live parser verification](docs/PIPELINE_OPTIMIZATION_2026-11-06.md).
 
 ## League-specific streaming coverage
 

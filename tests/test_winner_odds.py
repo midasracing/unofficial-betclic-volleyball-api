@@ -33,3 +33,10 @@ def test_reject_three_way_market_even_if_named_winner():
         {"name": "1", "odds": 1.2}, {"name": "X", "odds": 4},
         {"name": "2", "odds": 6}]}
     assert winner_market([bad]) is None
+
+
+def test_invalid_third_selection_does_not_turn_a_three_way_market_into_two_way():
+    bad = {"name": "Match Winner", "selections": [
+        {"name": "1", "odds": 1.2}, {"name": "X", "odds": float('nan')},
+        {"name": "2", "odds": 6}]}
+    assert winner_market([bad]) is None

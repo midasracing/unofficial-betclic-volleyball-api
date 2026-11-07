@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: volley-live-api
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: BETCLIC_STREAM
+        value: "1"
+      - key: STREAM_RECOVERY_SECONDS
+        value: "1"
+      - key: MAX_STREAMS
+        value: "3"
+      - key: CORS_ORIGINS
+        value: https://midasracing.github.io

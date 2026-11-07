@@ -24,6 +24,15 @@ def _message(fields, number):
         return {}
 
 
+def _messages(fields, number):
+    for raw in fields.get(number, []):
+        if isinstance(raw, bytes):
+            try:
+                yield decode_protobuf(raw)
+            except (ValueError, IndexError, TypeError, OverflowError):
+                continue
+
+
 def _utf8(value):
     if not isinstance(value, bytes):
         return None
@@ -45,14 +54,7 @@ def _score_pair(fields):
     return {"home": int(left), "away": int(right)}
 
 
-def _score_notification(data):
-    """Read score update at root.2.1.2.1; otherwise ignore the frame."""
-    try:
-        root = decode_protobuf(data)
-        wrapper = _message(_message(_message(root, 2), 1), 2)
-        entry = _message(wrapper, 1)
-    except (ValueError, IndexError, TypeError, OverflowError):
-        return None
+def _score_entry(entry, source):
     if _utf8(_first(entry, 1)) != "volleyball":
         return None
     match_id = _first(entry, 10)
@@ -71,7 +73,12 @@ def _score_notification(data):
         code = _utf8(_first(period, 2))
         result = _score_pair(_message(period, 3))
         if code and re.fullmatch(r"vlb_(?:first|second|third|fourth|fifth)_set", code) and result:
-            finished.append({"period": code, **result})
+            high, low = max(result.values()), min(result.values())
+            target = 15 if code == "vlb_fifth_set" else 25
+            # Field 9 can contain future 0:0 periods at set transitions.
+            # Only a legally completed indoor set contributes to set wins.
+            if (high == target and low <= target - 2) or (high > target and high - low == 2):
+                finished.append({"period": code, **result})
     current_info = _message(entry, 13)
     current_period = _utf8(_first(current_info, 3))
     set_indices = {"first": 1, "second": 2, "third": 3, "fourth": 4, "fifth": 5}
@@ -94,8 +101,35 @@ def _score_notification(data):
         "current_points": points,
         "completed_sets": finished,
         "sets_won_derived": sets_won,
-        "source": "betclic_grpc_web_score_notification",
+        "source": source,
     }
+
+
+def match_snapshots(root, expected_match_id=None):
+    for wrapper in _messages(root, 1):
+        for match in _messages(wrapper, 1):
+            if expected_match_id is None or _first(match, 1) == expected_match_id:
+                yield match
+
+
+def decode_score_root(root, expected_match_id=None, snapshots=None):
+    """Read all verified score entries, including reconnection snapshots."""
+    latest = None
+    snapshots = match_snapshots(root, expected_match_id) if snapshots is None else snapshots
+    for match in snapshots:
+        for entry in _messages(match, 13):
+            score = _score_entry(entry, "betclic_grpc_web_score_snapshot")
+            if score and score["match_id"] == _first(match, 1):
+                if expected_match_id is None or score["match_id"] == expected_match_id:
+                    latest = score
+    for envelope in _messages(root, 2):
+        for notification in _messages(envelope, 1):
+            for wrapper in _messages(notification, 2):
+                for entry in _messages(wrapper, 1):
+                    score = _score_entry(entry, "betclic_grpc_web_score_notification")
+                    if score and (expected_match_id is None or score["match_id"] == expected_match_id):
+                        latest = score
+    return latest
 
 
 def decode_score_frames(frames, expected_match_id=None):
@@ -108,7 +142,10 @@ def decode_score_frames(frames, expected_match_id=None):
         payload = frame.get("data")
         if not isinstance(payload, bytes):
             continue
-        score = _score_notification(payload)
+        try:
+            score = decode_score_root(decode_protobuf(payload), expected_match_id)
+        except (ValueError, IndexError, TypeError, OverflowError):
+            continue
         if score and (expected_match_id is None or score["match_id"] == expected_match_id):
             latest = score
     return latest

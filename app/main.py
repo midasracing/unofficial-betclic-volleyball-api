@@ -7,7 +7,7 @@ import asyncio
 import logging
 import os
 import time
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
@@ -15,13 +15,14 @@ from app.client import BetclicSnapshotClient
 from betclic_api.proto import encode_field_varint, encode_field_string
 from app.parser import parse_match_frames
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.filters import category
 from app.scheduling import choose_due, select_league_streams, TARGET_LEAGUES
 from app.streaming import StreamWorker, STREAM_READ_TIMEOUT
 from app.winner_odds import winner_market
-from app.betclic_scores import decode_score_frames
-from betclic_api.parser import parse_match_detail_response
+from app.live_parser import LiveMatchParser
+from app.updates import MatchUpdates
 
 log = logging.getLogger(__name__)
 POLL_SECONDS = max(15, int(os.getenv("POLL_SECONDS", "30")))
@@ -40,6 +41,10 @@ def timestamp():
     return datetime.now(timezone.utc).isoformat()
 
 def serialize(match, decoded_score=None):
+    market = winner_market(match.markets)
+    # asdict normally deep-copies every selection of every discarded market.
+    source_data = asdict(replace(match, markets=[]))
+    source_data.pop("markets")
     return {
         "id": match.id,
         "sport": "volleyball",
@@ -61,11 +66,11 @@ def serialize(match, decoded_score=None):
         "serving_team": None,
         "score_status": "decoded_from_grpc_notification" if decoded_score else "not_observed",
         "score_source": decoded_score.get("source") if decoded_score else None,
-        "market_count": 1 if winner_market(match.markets) else 0,
-        "winner_odds": winner_market(match.markets),
+        "market_count": 1 if market else 0,
+        "winner_odds": market,
         "odds_observed_at": None,
-        "source_data": {key: value for key, value in asdict(match).items() if key != "markets"},
-        "markets": [winner_market(match.markets)] if winner_market(match.markets) else [],
+        "source_data": source_data,
+        "markets": [market] if market else [],
     }
 
 class Store:
@@ -80,17 +85,22 @@ class Store:
         self.discovered_competitions = {}
         self.upstream_total = None
         self.refreshed_at = None
+        self.data_updated_at = None
         self.last_error = None
         self.listeners = set()
         self.task = None
         self.streams = {}
         self.retiring_streams = []
         self.last_stream_start = float('-inf')
+        self.live_decoders = {}
 
     async def refresh(self):
         """Single centralized Betclic collector; REST/WS never call upstream."""
         now_mono = time.monotonic()
         discovery_due = now_mono - self.last_discovery >= DISCOVERY_SECONDS
+        if STREAM_ENABLED and not discovery_due:
+            self.reconcile_streams()
+            return
 
         def retrieve():
             listed = dict(self.listed)
@@ -204,6 +214,7 @@ class Store:
         self.discovery_request_count += dc
         self.detail_request_count += mc
         self.refreshed_at = timestamp()
+        self.data_updated_at = self.refreshed_at
         self.last_error = None
         if STREAM_ENABLED:
             self.reconcile_streams()
@@ -218,11 +229,6 @@ class Store:
                 "match": after,
             }
             for queue in tuple(self.listeners):
-                if queue.full():
-                    try:
-                        queue.get_nowait()
-                    except asyncio.QueueEmpty:
-                        pass
                 queue.put_nowait(event)
 
     def publish(self, match_id, item):
@@ -230,14 +236,10 @@ class Store:
         if previous == item:
             return
         self.matches[match_id] = item
-        event = {"type": "match_updated", "timestamp": timestamp(),
+        self.data_updated_at = timestamp()
+        event = {"type": "match_updated", "timestamp": self.data_updated_at,
                  "match_id": match_id, "match": item}
         for queue in tuple(self.listeners):
-            if queue.full():
-                try:
-                    queue.get_nowait()
-                except asyncio.QueueEmpty:
-                    pass
             queue.put_nowait(event)
 
     def on_stream_frame(self, match_id, frame):
@@ -245,12 +247,26 @@ class Store:
         event = self.listed.get(match_id)
         if event is None or (STREAM_ENABLED and match_id not in self.streams):
             return
-        existing = dict(self.matches.get(match_id) or serialize(event))
+        worker = self.streams.get(match_id)
+        generation = (id(worker), getattr(getattr(worker, "stats", None), "opens", 0))
+        current = self.live_decoders.get(match_id)
+        if current is None or current[0] != generation:
+            current = (generation, LiveMatchParser(match_id))
+            self.live_decoders[match_id] = current
+        try:
+            parsed = current[1].feed(frame)
+        except (ValueError, TypeError, IndexError, OverflowError, RecursionError) as exc:
+            log.debug("Unrecognized match frame: %s", exc)
+            return
+        if parsed.score is None and not parsed.market_observed:
+            return
+        existing = self.matches.get(match_id) or serialize(event)
         updated = dict(existing)
-        # Match/market snapshot and score notifications can be independent frames.
-        decoded = decode_score_frames([frame], expected_match_id=match_id)
+        observed_at = timestamp()
+        changed = False
+        decoded = parsed.score
         if decoded:
-            updated.update({
+            values = {
                 "score": decoded.get("sets_won_derived"),
                 "sets": decoded.get("completed_sets"),
                 "current_set": decoded.get("current_set_number"),
@@ -258,23 +274,23 @@ class Store:
                 "current_points": decoded.get("current_points"),
                 "score_status": "decoded_from_grpc_notification",
                 "score_source": decoded.get("source"),
-                "score_observed_at": timestamp(),
-            })
-        try:
-            detail = parse_match_detail_response([frame])
-        except (ValueError, TypeError, IndexError) as exc:
-            log.debug("Unrecognized match frame: %s", exc)
-            detail = None
-        if detail is not None and detail.id == match_id:
-            # Only publish match-winner market. Ignore all set/exact score odds.
-            market = winner_market(detail.markets)
-            if market and market != existing.get("winner_odds"):
-                updated["markets"] = [market]
-                updated["winner_odds"] = market
-                updated["market_count"] = 1
-                updated["detail_observed_at"] = timestamp()
-                updated["odds_observed_at"] = updated["detail_observed_at"]
-        self.publish(match_id, updated)
+            }
+            changed = any(existing.get(key) != value for key, value in values.items() if key != "score_source")
+            updated.update(values)
+            updated["score_observed_at"] = observed_at
+        if parsed.market_observed:
+            market = parsed.market
+            changed = changed or market != existing.get("winner_odds")
+            updated.update({"markets": [market] if market else [], "winner_odds": market,
+                            "market_count": 1 if market else 0, "detail_observed_at": observed_at,
+                            "odds_observed_at": observed_at})
+        if changed:
+            self.publish(match_id, updated)
+        else:
+            # Identical confirmations refresh REST freshness without queuing
+            # another full WebSocket match payload for every connected client.
+            self.matches[match_id] = updated
+            self.data_updated_at = observed_at
 
     def reconcile_streams(self):
         if not STREAM_ENABLED:
@@ -289,6 +305,7 @@ class Store:
                 worker.close()
                 self.retiring_streams.append(worker)
                 del self.streams[match_id]
+                self.live_decoders.pop(match_id, None)
         # A thread can remain in an HTTP read for up to its read timeout.
         # Never open replacement connections while any old stream is retiring.
         self.retiring_streams = [
@@ -341,6 +358,9 @@ async def lifespan(app: FastAPI):
     store.client.close()
 
 app = FastAPI(title="Unofficial Betclic Men's Volleyball API", version="0.1.0", lifespan=lifespan)
+app.add_middleware(CORSMiddleware,
+    allow_origins=[value.strip() for value in os.getenv('CORS_ORIGINS','https://midasracing.github.io').split(',') if value.strip()],
+    allow_methods=['GET'], allow_headers=['*'])
 
 @app.get("/health")
 def health():
@@ -380,7 +400,7 @@ def matches(live: bool | None = None):
     items = list(store.matches.values())
     if live is not None:
         items = [m for m in items if m["is_live"] is live]
-    return {"updated_at": store.refreshed_at, "count": len(items), "matches": items}
+    return {"updated_at": store.data_updated_at or store.refreshed_at, "count": len(items), "matches": items}
 
 @app.get("/api/v1/matches/live")
 def live_matches():
@@ -398,7 +418,7 @@ def match_score(match_id: int):
     item = match(match_id)
     return {
         "match_id": match_id,
-        "updated_at": store.refreshed_at,
+        "updated_at": item.get("score_observed_at") or store.refreshed_at,
         "status": item["score_status"],
         "sets_won": item["score"],
         "completed_sets": item["sets"],
@@ -448,7 +468,7 @@ def leagues():
             "matches_with_score": sum(bool(e.get("score_observed_at")) for e in events),
             "matches_with_winner_odds": sum(bool(e.get("winner_odds")) for e in events),
         })
-    return {"updated_at": store.refreshed_at,
+    return {"updated_at": store.data_updated_at or store.refreshed_at,
             "discovery_source": "Betclic FR offering",
             "streams_per_league_limit": STREAMS_PER_LEAGUE,
             "total_stream_limit": MAX_STREAMS,
@@ -492,17 +512,24 @@ def schema():
 @app.websocket("/api/v1/live")
 async def stream(socket: WebSocket):
     await socket.accept()
-    queue = asyncio.Queue(maxsize=100)
+    queue = MatchUpdates(limit=100)
     store.listeners.add(queue)
     try:
-        await socket.send_json({"type": "snapshot", "timestamp": store.refreshed_at,
+        await socket.send_json({"type": "snapshot", "timestamp": store.data_updated_at or store.refreshed_at,
                                 "matches": list(store.matches.values())})
         while True:
             try:
                 event = await asyncio.wait_for(queue.get(), timeout=25)
+                if event is None:
+                    event = {"type": "snapshot", "timestamp": store.data_updated_at or store.refreshed_at,
+                             "matches": list(store.matches.values())}
                 await socket.send_json(event)
             except asyncio.TimeoutError:
-                await socket.send_json({"type": "heartbeat", "timestamp": timestamp()})
+                await socket.send_json({"type": "heartbeat", "timestamp": timestamp(),
+                    "observations": {str(match_id): {
+                        "score_observed_at": item.get("score_observed_at"),
+                        "odds_observed_at": item.get("odds_observed_at"),
+                    } for match_id, item in store.matches.items() if match_id in store.streams}})
     except (WebSocketDisconnect, RuntimeError):
         pass
     finally:

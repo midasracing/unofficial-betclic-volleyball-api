@@ -12,6 +12,13 @@ from app import main
 from app.streaming import StreamStats
 
 
+def test_github_pages_can_read_cached_api_without_credentials():
+    api=TestClient(main.app)
+    response=api.get('/health',headers={'Origin':'https://midasracing.github.io'})
+    assert response.headers['access-control-allow-origin']=='https://midasracing.github.io'
+    assert 'access-control-allow-credentials' not in response.headers
+
+
 def fixture(match_id=101, competition="Pologne Tauron Liga H.", teams=True, competition_id=None):
     return Match(
         id=match_id, name="Projekt Warszawa - Slepsk Suwalki",
@@ -66,7 +73,7 @@ def test_catalog_refresh_preserves_a_newer_pushed_score_and_odds(monkeypatch):
     cache.listed = {101: fixture()}
     cache.matches = {101: main.serialize(fixture())}
     cache.matches[101]["current_points"] = {"home": 10, "away": 10}
-    cache.last_discovery = main.time.monotonic()
+    cache.client.get_matches.side_effect = [{"matches": [fixture()]}, {"matches": []}]
     cache.reconcile_streams = Mock()
 
     async def interleaved(function):
@@ -81,7 +88,7 @@ def test_catalog_refresh_preserves_a_newer_pushed_score_and_odds(monkeypatch):
     asyncio.run(cache.refresh())
     assert cache.matches[101]["current_points"] == {"home": 11, "away": 10}
     assert cache.matches[101]["winner_odds"]["suspended"] is True
-    cache.client.get_matches.assert_not_called()
+    assert cache.client.get_matches.call_count == 2
 
 
 def test_health_degrades_when_an_expected_live_match_has_no_worker(monkeypatch):
